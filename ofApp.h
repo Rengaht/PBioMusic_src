@@ -5,12 +5,15 @@
 #include "ofxOsc.h"
 
 
-#define USE_VIDEO
+//#define USE_VIDEO
 
-#define PWIDTH 1280
-#define PHEIGHT 720
-#define SIZE_LOW .01
-#define SIZE_HIGH .33
+#define VWIDTH 640	
+#define VHEIGHT 480
+
+#define PWIDTH 640
+#define PHEIGHT 480
+#define SIZE_LOW .001
+#define SIZE_HIGH .8
 #define THRESHOLD 50
 #define SCANSTARTVEL .01
 #define SCANWIDTH 2
@@ -19,12 +22,37 @@
 #define MMODE 4
 #define MSCANREGION 12
 
+#define BALLRAD 2
 
 struct BlobComparator{
 	bool operator()(const ofxCvBlob& a_,const ofxCvBlob& b_){ 
 		return  a_.area<b_.area;
 	}
 };
+struct DetectBlob{
+	int _id;
+	float _walk_pos;
+	ofxCvBlob _blob;
+	bool _trigger;
+	int _life;
+	DetectBlob(){
+		_trigger=false;
+		_walk_pos=0;
+		_life=3;
+	}
+};
+struct PinBall{
+	ofVec2f _pos;
+	ofVec2f _vel;
+	ofVec2f _acc;
+	PinBall(){
+		_pos=ofVec2f(0,0);
+		_vel=ofVec2f(0,0);
+		_acc=ofVec2f(0,0);
+	}
+};
+
+
 
 class ofApp : public ofBaseApp{
 
@@ -50,8 +78,9 @@ class ofApp : public ofBaseApp{
 #else
 		ofVideoGrabber 		_camera;
 #endif
-    
+		ofxCvColorImage _img_cam;
 		ofxCvColorImage			_img_color;
+		
 
 		ofxCvGrayscaleImage 	_img_gray;
 		ofxCvGrayscaleImage 	_img_bg;
@@ -60,8 +89,7 @@ class ofApp : public ofBaseApp{
 		ofxCvContourFinder 	_contour_finder;
 
 		
-		vector<ofxCvBlob> _collect_blob;
-		vector<ofxCvBlob> _last_trigger;
+		vector<DetectBlob> _collect_blob;
 		void updateTrigger();
 
 		void combineBlob(vector<ofxCvBlob>& detect_);		 
@@ -72,7 +100,9 @@ class ofApp : public ofBaseApp{
     
         enum MODE {SCAN,FIX_SCAN,CONTOUR_WALK,PINBALL};
         MODE _mode;
-        bool _debug;
+		void initMode(MODE set_);
+		
+		bool _debug;
     
 	   float _scan_pos;
 	   float _scan_vel;
@@ -84,11 +114,24 @@ class ofApp : public ofBaseApp{
 	   bool isScanned(ofxCvBlob blob_);
 	   bool isSimilar(ofxCvBlob b1_,ofxCvBlob b2_);
 
+	   void updateBlob(vector<ofxCvBlob>& blob_);
+
        void trigger(int mode_,int data_);
 	   ofxOscSender _osc_sender;
 	   void sendOSC(string address_,int num_);
+
+	   
     
        //scan
        void checkScan(SCANDIR dir_);
-    
+	   vector<bool> _scan_touched;
+
+	   //contour
+	   float _walk_vel;
+	
+	   //pinBall
+	   float _ball_rad;
+	   vector<PinBall> _pinball;
+	   void addPinball();
+	   void updatePinball(PinBall& b_);
 };
