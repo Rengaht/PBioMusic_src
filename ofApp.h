@@ -1,9 +1,10 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxOpenCV.h"
 #include "ofxOsc.h"
 
+#include <opencv2/opencv.hpp>
+using namespace cv;
 
 //#define USE_VIDEO
 
@@ -12,33 +13,49 @@
 
 #define PWIDTH 640
 #define PHEIGHT 480
-#define SIZE_LOW .001
-#define SIZE_HIGH .8
-#define THRESHOLD 50
+#define SIZE_LOW 200
+#define SIZE_HIGH .5
+#define THRESHOLD 20
 #define SCANSTARTVEL .01
 #define SCANWIDTH 2
 #define MAXBLOB 20
+
+#define LIFESPAN 1
 
 #define MMODE 4
 #define MSCANREGION 12
 
 #define BALLRAD 2
 
-struct BlobComparator{
-	bool operator()(const ofxCvBlob& a_,const ofxCvBlob& b_){ 
-		return  a_.area<b_.area;
-	}
+#define CONTRASTR1 90
+#define CONTRASTR2 140
+
+//struct BlobComparator{
+//	bool operator()(const ofxCvBlob& a_,const ofxCvBlob& b_){ 
+//		return  a_.area<b_.area;
+//	}
+//};
+struct Blob{
+	vector<Point> _contours;
+	int _npts;
+
+	Point2f _center;
+	Rect _bounding;
+	float _rad;
+	
 };
 struct DetectBlob{
 	int _id;
 	float _walk_pos;
-	ofxCvBlob _blob;
+
+	Blob _blob;
+
 	bool _trigger;
 	int _life;
 	DetectBlob(){
 		_trigger=false;
 		_walk_pos=0;
-		_life=3;
+		_life=LIFESPAN;
 	}
 };
 struct PinBall{
@@ -78,21 +95,16 @@ class ofApp : public ofBaseApp{
 #else
 		ofVideoGrabber 		_camera;
 #endif
-		ofxCvColorImage _img_cam;
-		ofxCvColorImage			_img_color;
-		
+		Mat _mat_grab,_mat_gray,_mat_contrast,_mat_thres;
+		ofPixels _output_pixels;
+		ofImage _img_gray,_img_thres,_img_contrast;
 
-		ofxCvGrayscaleImage 	_img_gray;
-		ofxCvGrayscaleImage 	_img_bg;
-		ofxCvGrayscaleImage 	_img_diff;
+		Mat imageToMat(ofImage& img_);
+		ofImage matToImage(Mat& mat_);
 
-		ofxCvContourFinder 	_contour_finder;
-
-		
 		vector<DetectBlob> _collect_blob;
-		void updateTrigger();
 
-		void combineBlob(vector<ofxCvBlob>& detect_);		 
+ 
 
 		int _threshold;
 		bool _use_background;
@@ -111,14 +123,23 @@ class ofApp : public ofBaseApp{
 	   SCANDIR _scan_dir;
     
 
-	   bool isScanned(ofxCvBlob blob_);
-	   bool isSimilar(ofxCvBlob b1_,ofxCvBlob b2_);
+	   bool isScanned(DetectBlob blob_);
+	   bool isSimilar(Blob b1_,Blob b2_);
 
-	   void updateBlob(vector<ofxCvBlob>& blob_);
+	   int _contrast_r1,_contrast_r2;
+	   void stretchContrast(Mat& src_,Mat& dst_);
+
+	   void updateBlob(vector<vector<Point>>& contour_,vector<Vec4i>& hierachy_);
+	   Blob contourApproxBlob(vector<Point>& contour_);
+
 
        void trigger(int mode_,int data_);
 	   ofxOscSender _osc_sender;
 	   void sendOSC(string address_,int num_);
+
+
+	   vector<vector<Point> > _contours;
+	   vector<Vec4i> _hierarchy;
 
 	   
     

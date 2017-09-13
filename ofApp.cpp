@@ -12,16 +12,18 @@ void ofApp::setup(){
     _video.play();
     _video.setLoopState(OF_LOOP_NORMAL);
     _video.setVolume(0);
+	_mat_grab=Mat(_video.getHeight(),_video.getWidth(),CV_8UC3);
 #else
 	_camera.setVerbose(true);
 	_camera.setup(VWIDTH,VHEIGHT);
+	_mat_grab=Mat(_camera.getHeight(),_camera.getWidth(),CV_8UC3);
 #endif
 
-	_img_color.allocate(PWIDTH,PHEIGHT);
-	_img_gray.allocate(PWIDTH,PHEIGHT);
-	_img_bg.allocate(PWIDTH,PHEIGHT);
-	_img_bg.set(0);
-	_img_diff.allocate(PWIDTH,PHEIGHT);
+	
+	_mat_gray=Mat(_mat_grab.size(),CV_8UC1);
+	_mat_contrast=Mat(_mat_grab.size(),CV_8UC3);
+	_mat_thres=Mat(_mat_grab.size(),CV_8UC1);
+
 
 	_use_background = false;
 	_threshold = THRESHOLD;
@@ -38,6 +40,10 @@ void ofApp::setup(){
 	_ball_rad=BALLRAD;
 
 	for(int i=0;i<MSCANREGION;++i) _scan_touched.push_back(false);
+
+	_contrast_r1=CONTRASTR1;
+	_contrast_r2=CONTRASTR2;
+
 }
                                
 //--------------------------------------------------------------
@@ -56,22 +62,34 @@ void ofApp::update(){
 
 	if (bNewFrame){
 #ifdef USE_VIDEO		
-        _img_cam.setFromPixels(_video.getPixels());
+        _mat_grab=Mat(_video.getHeight(),_video.getWidth(),CV_8UC3,_video.getPixelsRef().getData());
 #else	
-		_img_cam.setFromPixels(_camera.getPixels());
+		_mat_grab=Mat(_camera.getHeight(),_camera.getWidth(),CV_8UC3,_camera.getPixelsRef().getData());
 #endif  
-        
-        _img_color.scaleIntoMe(_img_cam);
-		_img_gray=_img_color;
-		//_img_color.convertToGrayscalePlanarImage(_img_gray,255);
-		_img_diff.absDiff(_img_bg, _img_gray);
-		_img_diff.threshold(_threshold);
+		
+		stretchContrast(_mat_grab,_mat_contrast);
+
+		cv::cvtColor(_mat_contrast,_mat_gray,CV_BGR2GRAY);
+		//cv::GaussianBlur(_mat_gray,_mat_gray,Size(3,3),0,0);
+		
+
+        cv::threshold(_mat_gray,_mat_thres,_threshold,255,THRESH_BINARY);
+		
+		
+		_img_gray=matToImage(_mat_gray);
+		_img_thres=matToImage(_mat_thres);
+		_img_contrast=matToImage(_mat_contrast);
 
         float area_=PWIDTH*PHEIGHT;
-		_contour_finder.findContours(_img_diff,area_*SIZE_LOW,area_*SIZE_HIGH, MAXBLOB, _find_holes);	// find holes
-		std::sort(_contour_finder.blobs.begin(),_contour_finder.blobs.end(),BlobComparator{});
-		updateBlob(_contour_finder.blobs);
-		combineBlob(_contour_finder.blobs);
+
+		_contours.clear();
+		_hierarchy.clear();
+
+		cv::findContours(_mat_thres,_contours,_hierarchy,CV_RETR_CCOMP,CHAIN_APPROX_SIMPLE,Point(0,0));
+
+		updateBlob(_contours,_hierarchy);
+
+		
 
         switch(_mode){
             case SCAN:
@@ -110,13 +128,21 @@ void ofApp::draw(){
 	ofSetHexColor(0xffffff);
 	float ratio_=1;
 	if(_debug){
-		_img_color.draw(0,0,PWIDTH,PHEIGHT);
-		_img_diff.draw(0,PHEIGHT,PWIDTH,PHEIGHT);
+#ifdef USE_VIDEO
+		_video.draw(0,0,PWIDTH,PHEIGHT);
+#else
+		_camera.draw(0,0,PWIDTH,PHEIGHT);
+#endif 
 		_img_gray.draw(PWIDTH,0,PWIDTH,PHEIGHT);
-		_img_bg.draw(PWIDTH,PHEIGHT,PWIDTH,PHEIGHT);
+		_img_contrast.draw(0,PHEIGHT,PWIDTH,PHEIGHT);
+		_img_thres.draw(PWIDTH,PHEIGHT,PWIDTH,PHEIGHT);
 	}else{
 		ratio_=min((float)ofGetWidth()/PWIDTH,(float)ofGetHeight()/PHEIGHT);
-		_img_color.draw(0,0,PWIDTH*ratio_,PHEIGHT*ratio_);
+#ifdef USE_VIDEO
+		_video.draw(0,0,PWIDTH*ratio_,PHEIGHT*ratio_);
+#else
+		_camera.draw(0,0,PWIDTH*ratio_,PHEIGHT*ratio_);
+#endif 
 	}
 
 	ofPushMatrix();
@@ -128,9 +154,10 @@ void ofApp::draw(){
 		if(b._trigger) ofSetColor(255,0,0);
 		else ofSetColor(0,0,255);
 		ofNoFill();
-			ofDrawRectangle(b._blob.boundingRect);
+			ofDrawRectangle(b._blob._bounding.x,b._blob._bounding.y,
+							b._blob._bounding.width,b._blob._bounding.height);
 			ofBeginShape();
-			for(auto& p:b._blob.pts) ofVertex(p.x,p.y);
+			for(auto& p:b._blob._contours) ofVertex(p.x,p.y);
 			ofEndShape();
 		ofPopStyle();
         
@@ -160,7 +187,7 @@ void ofApp::draw(){
  					ofDrawLine(_scan_pos*PWIDTH,i*h_,_scan_pos*PWIDTH,(i+1)*h_);
 				}
 			}else if(_scan_dir==SCANDIR::RADIAL){
-                float rad_=_scan_pos*min(PWIDTH,PHEIGHT)/2;
+                float rad_=_scan_pos*max(PWIDTH,PHEIGHT)/2;
 				ofPolyline arc_;
 				arc_.arc(0,0,rad_,rad_,0,360.0/MSCANREGION,100);				
 				
@@ -180,13 +207,13 @@ void ofApp::draw(){
 			ofPushStyle();
 			ofSetColor(255,0,0);
 			for(int i=0;i<_collect_blob.size();++i){
-				float p_=(float)_collect_blob[i]._blob.nPts*_collect_blob[i]._walk_pos;
+				float p_=(float)_collect_blob[i]._blob._npts*_collect_blob[i]._walk_pos;
 				int begin_=floor(p_);		
-				int end_=(begin_+1)%_collect_blob[i]._blob.nPts;
+				int end_=(begin_+1)%_collect_blob[i]._blob._npts;
 				p_-=begin_;
 
-				float x_=ofLerp(_collect_blob[i]._blob.pts[begin_].x,_collect_blob[i]._blob.pts[end_].x,p_);
-				float y_=ofLerp(_collect_blob[i]._blob.pts[begin_].y,_collect_blob[i]._blob.pts[end_].y,p_);
+				float x_=ofLerp(_collect_blob[i]._blob._contours[begin_].x,_collect_blob[i]._blob._contours[end_].x,p_);
+				float y_=ofLerp(_collect_blob[i]._blob._contours[begin_].y,_collect_blob[i]._blob._contours[end_].y,p_);
 				ofDrawCircle(x_,y_,2);
 			}
 			ofPopStyle();
@@ -212,21 +239,41 @@ void ofApp::draw(){
 	reportStr << "bg subtraction and blob detection" << endl
 		<<"press ' ' to capture bg" << endl
 		<<"threshold " << _threshold << " (press: +/-)" << endl
-		<<"num blobs found " << _contour_finder.nBlobs 
+		<<"blobs found: " << _collect_blob.size()<<endl
 		<<"fps: " << ofGetFrameRate()<<endl
-		<<"mode "<<_mode;
+		<<"mode "<<_mode<<endl
+		<<"contrast: "<<_contrast_r1<<"  "<<_contrast_r2;
 	ofDrawBitmapString(reportStr.str(), 20, 600);
 }
 
-void ofApp::updateBlob(vector<ofxCvBlob>& blob_){
+void ofApp::updateBlob(vector<vector<Point>>& contour_,vector<Vec4i>& hierachy_){
+	
+	// approx contour
+	int clen=contour_.size();
+	vector<Blob> blob_;
+	float frame_=PWIDTH*PHEIGHT;
+
+	for(int i=0;i<clen;++i){
+		float area_=cv::contourArea(contour_[i]);		
+		if(area_>SIZE_LOW && area_<SIZE_HIGH*frame_)
+			blob_.push_back(contourApproxBlob(contour_[i]));
+	}
+
+	// combine hierachy
+
+
+
+	// track exist
+	
 	int len=blob_.size();
-	bool exist_=false;
+	
 	for(int i=0;i<len;++i){
+		bool exist_=false;
 		for(auto& b:_collect_blob){
 			if(isSimilar(b._blob,blob_[i])){
 				//b._blob=blob_[i];
 				exist_=true;
-				b._life=3;
+				b._life=LIFESPAN;
 				break;
 			}
 		}
@@ -238,35 +285,19 @@ void ofApp::updateBlob(vector<ofxCvBlob>& blob_){
 		}
 	}
 	
-	
-
-}
-
-void ofApp::combineBlob(vector<ofxCvBlob>& detect_){
-
-	//_collect_blob.clear();
-	//int len=detect_.size();
-	//for(int i=0;i<len;++i){
-	//	ofxCvBlob b_=detect_[i];
-	//	bool inside_=false;
-	//	for(auto& c_:_collect_blob){
-	//		// check
-	//		if(b_.boundingRect.inside(c_.boundingRect)){
-	//			inside_=true;									
-	//		}		
-	//		
-	//	}
-	//	if(!inside_) _collect_blob.push_back(b_);
-	//}
-
+	// erase dead
 	for(auto i=_collect_blob.begin();i!=_collect_blob.end();){
 		if(i->_life<0)
 			i=_collect_blob.erase(i);
-		else i->_life--;
+		else{
+			i->_life--;
+			i++;
+		}
 	}
 
 }
-bool ofApp::isScanned(ofxCvBlob blob_){
+
+bool ofApp::isScanned(DetectBlob detect_){
 	//ofLog()<<rect_.getMinX()<<"  "<<rect_.getMaxX();
 //	ofRectangle rect_=blob_.boundingRect;
 //	bool scan_=rect_.getMinX()<_scan_pos && rect_.getMaxX()>_scan_pos;
@@ -294,12 +325,12 @@ bool ofApp::isScanned(ofxCvBlob blob_){
     
     switch(_scan_dir){
         case VERT:
-            if(spos_>=blob_.boundingRect.getMinX() && spos_<blob_.boundingRect.getMaxX()) return true;
+            if(spos_>=detect_._blob._bounding.x && spos_<detect_._blob._bounding.x+detect_._blob._bounding.width) return true;
             break;
         case RADIAL:
-            dist=ofDist(blob_.centroid.x,blob_.centroid.y,PWIDTH/2,PHEIGHT/2);
+            dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PWIDTH/2,PHEIGHT/2);
            // ang=atan2(blob_.centroid.y-PHEIGHT/2,blob_.centroid.x-PWIDTH/2)+HALF_PI;
-			float brad_=min(blob_.boundingRect.width,blob_.boundingRect.height)/2;
+			float brad_=max(detect_._blob._bounding.width,detect_._blob._bounding.height)/2;
 			if(dist-brad_<spos_ && dist+brad_>spos_) return true;
             break;
                 
@@ -339,6 +370,25 @@ void ofApp::keyPressed(int key){
 			break;
 		case 'd':
 			_debug=!_debug;
+			break;
+		case 'c':
+			_collect_blob.clear();
+			break;
+		case '1':
+			_contrast_r1++;
+			if(_contrast_r1>_contrast_r2) _contrast_r1=_contrast_r2;
+			break;
+		case '2':
+			_contrast_r1--;
+			if(_contrast_r1<1) _contrast_r1=1;
+			break;
+		case '3':
+			_contrast_r2++;
+			if(_contrast_r2>254) _contrast_r2=254;
+			break;
+		case '4':
+			_contrast_r2--;
+			if(_contrast_r2<_contrast_r1) _contrast_r2=_contrast_r1;
 			break;
 	}
 }
@@ -404,23 +454,11 @@ void ofApp::sendOSC(string address_,int num){
 }
 
 
-bool ofApp::isSimilar(ofxCvBlob b1_,ofxCvBlob b2_){
-	if(abs(b1_.area-b2_.area)<100
-	   && abs(b1_.centroid.y-b2_.centroid.y)<10) return true;
+bool ofApp::isSimilar(Blob b1_,Blob b2_){
+	if(abs(b1_._bounding.area()-b2_._bounding.area())<200
+	   && abs(b1_._center.y-b2_._center.y)<20) return true;
 	return false;
 }
-
-void ofApp::updateTrigger(){
-   /* for(auto i=_last_trigger.begin();i!=_last_trigger.end();){
-		if(!isScanned(*i)){
-			i=_last_trigger.erase(i);
-		}else{
-			++i;
-		}
-	}*/
-
-}
-
 
 void ofApp::checkScan(SCANDIR dir_){
     float epos_=(_scan_dir==SCANDIR::VERT)?PHEIGHT/(float)MSCANREGION:TWO_PI/(float)MSCANREGION;
@@ -433,14 +471,14 @@ void ofApp::checkScan(SCANDIR dir_){
 		
         switch(_scan_dir){
             case VERT:
-                if(isScanned(b._blob)){
-					_scan_touched[int(floor(b._blob.centroid.y/epos_))]=true;
+                if(isScanned(b)){
+					_scan_touched[int(floor(b._blob._center.y/epos_))]=true;
 					b._trigger=true;
 				}else b._trigger=false;
                 break;
             case RADIAL:
-                ang=atan2(b._blob.centroid.y-PHEIGHT/2,b._blob.centroid.x-PWIDTH/2)+PI;				
-                if(isScanned(b._blob)){
+                ang=atan2(b._blob._center.y-PHEIGHT/2,b._blob._center.x-PWIDTH/2)+PI;				
+                if(isScanned(b)){
 					int region_=(int)(floor(ang/TWO_PI*MSCANREGION));
 					_scan_touched[region_]=true;
 					b._trigger=true;
@@ -479,9 +517,11 @@ void ofApp::updatePinball(PinBall& p_){
 	//check collide
 	p_._acc*=0;
 	
-	for(auto& b:_collect_blob){		
-		if(b._blob.boundingRect.inside(p_._pos)){
-			ofVec2f a_(p_._pos.x-b._blob.centroid.x,p_._pos.y-b._blob.centroid.y);
+	for(auto& b:_collect_blob){				
+		//if(cv::pointPolygonTest(b._blob._contours,Point(p_._pos.x,p_._pos.y),false)){
+		if(p_._pos.x>b._blob._bounding.x && p_._pos.x<b._blob._bounding.x+b._blob._bounding.width
+			&& p_._pos.y>b._blob._bounding.y && p_._pos.y<b._blob._bounding.y+b._blob._bounding.height){
+			ofVec2f a_(p_._pos.x-b._blob._center.x,p_._pos.y-b._blob._center.y);
 			a_.normalize();
 			a_*=2.0;
 			p_._acc+=a_;
@@ -508,4 +548,62 @@ void ofApp::updatePinball(PinBall& p_){
 	p_._pos+=p_._vel;
 	
 	 
+}
+
+Blob ofApp::contourApproxBlob(vector<Point>& contour_){
+	Blob b;
+	vector<Point> poly_;
+	Point2f center_;
+	Rect bounding_;
+	float rad_;
+
+	cv::approxPolyDP(Mat(contour_),poly_,3,true);
+	bounding_=cv::boundingRect(Mat(poly_));
+	minEnclosingCircle(poly_,center_,rad_);
+
+	b._contours=poly_;
+	b._center=center_;
+	b._bounding=bounding_;
+	b._rad=rad_;
+	b._npts=poly_.size();
+
+	return b;
+}
+
+
+Mat ofApp::imageToMat(ofImage& img_){
+
+	return Mat(img_.getHeight(),img_.getWidth(),CV_8UC3,img_.getPixelsRef().getData());
+
+}
+
+ofImage ofApp::matToImage(Mat& mat_){
+	
+	ofPixels pix_;
+	pix_.setFromExternalPixels(mat_.ptr(),mat_.cols,mat_.rows,mat_.channels());
+	return ofImage(pix_);
+	
+}
+
+void ofApp::stretchContrast(Mat& src_, Mat& dst_){
+
+	int r1=_contrast_r1;
+	int s1=0;
+	int r2=_contrast_r2;
+	int s2=255;
+
+	dst_=src_.clone();
+	for(int y=0;y<src_.rows;++y){
+		for(int x=0;x<src_.cols;++x){			
+			for(int c=0;c<3;++c){
+				float val=src_.at<Vec3b>(y,x)[c];
+				int output;
+				if(0<=val && val<=r1) output=s1/r1*val;
+				else if(r1<val && val<=r2) output=((s2-s1)/(r2-r1))*(val-r1)+s1;
+				else if(r2<val && val<=255) output=((255-s2)/(255-r2))*(val-r2)+s2;
+
+				dst_.at<Vec3b>(y,x)[c]=output;
+			}
+		}
+	}
 }
