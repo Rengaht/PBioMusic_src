@@ -7,8 +7,8 @@
 
 
 string GlobalParam::ParamFilePath="_param.xml";
-ofVec2f* PacMan::Direction=new ofVec2f[8]{ofVec2f(1,0),ofVec2f(1,1),ofVec2f(0,1),ofVec2f(-1,1),ofVec2f(-1,0),
-					  ofVec2f(-1,-1),ofVec2f(0,-1),ofVec2f(1,-1)};
+ofVec2f* PacMan::Direction=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,1),ofVec2f(0,1),ofVec2f(-1,1),ofVec2f(-1,0)};
+ofVec2f* PacMan::GDirection=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,-1),ofVec2f(0,-1),ofVec2f(-1,-1),ofVec2f(-1,0)};
 float PacMan::Rad=2;
 
 //ofColor* DetectBlob::BColor=new ofColor[5]{ofColor(0,230,240),ofColor(0,255,0),ofColor(255,255,0),ofColor(255,104,0),ofColor(255,20,171)};

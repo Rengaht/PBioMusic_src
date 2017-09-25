@@ -33,7 +33,8 @@ void ofApp::setup(){
 	_mat_edge=Mat(PHEIGHT,PWIDTH,CV_8UC1);
 
 
-	_osc_sender.setup("127.0.0.1",12000);
+	_osc_sender.setup(_param->_live_addr,9000);
+	_osc_receiver.setup(9001);
     
 
 	_anim_detect=FrameTimer(200);
@@ -49,6 +50,10 @@ void ofApp::setup(){
 	_scan_dir=SCANDIR::VERT;
 
 	for(int i=0;i<_param->_mscan_region;++i) _scan_touched.push_back(false);
+
+
+	//setup spout
+	_spout_sender.init("_MicroMusic_Sender");
 
 }
                                
@@ -110,8 +115,13 @@ void ofApp::update(){
 
 
 	}
-
 	
+	receiveOSC();
+
+
+	//send spout
+	_spout_image.grabScreen(0,0,ofGetWidth(),ofGetHeight());
+	_spout_sender.send(_spout_image.getTexture());
 }
 
 
@@ -312,7 +322,7 @@ void ofApp::cvProcess(Mat& grab_){
 	//stretchContrast(_mat_resize,_mat_contrast,_param->_contrast_low,_param->_contrast_high);
 
 	cv::cvtColor(grab_,_mat_gray,CV_BGR2GRAY);
-	//cv::blur(_mat_gray,_mat_gray,Size(4,4));
+	cv::blur(_mat_gray,_mat_gray,Size(3,3));
 
 	//cv::equalizeHist(_mat_gray,_mat_normalize);
 	cv::normalize(_mat_gray,_mat_normalize,0,255,CV_MINMAX);
@@ -479,10 +489,17 @@ void ofApp::keyPressed(int key){
 					_scan_dir=SCANDIR(((int)_scan_dir+1)%2);
 					break;		
 				case EDGE_WALK:
-					if(_pacman.size()<MAXPACMAN) addPacMan();
+					addPacMan(false);
 					break;
 				case BLOB_SELECT:
 					setEffect(DEFFECT::BLOB_SELECT);
+					break;
+			}
+			break;
+		case 'q':
+			switch(_effect){
+				case EDGE_WALK:
+					addPacMan(true);
 					break;
 			}
 			break;
@@ -494,6 +511,12 @@ void ofApp::keyPressed(int key){
 		
 		case 's':
 			_param->saveParameterFile();
+			break;
+		case 'k':
+			triggerSound(true);
+			break;
+		case 'l':
+			triggerSound(false);
 			break;
 	}
 }
@@ -565,12 +588,16 @@ void ofApp::setMode(MODE set_){
 	_mode=set_;
 }
 
-void ofApp::sendOSC(string address_,int num){
+void ofApp::sendOSC(string address_,vector<int> param_){
 
-	ofLog()<<"send osc: "<<address_<<" "<<num;
+	cout<<"send osc: "<<address_<<" ";
 	ofxOscMessage message_;
 	message_.setAddress(address_);
-	message_.addIntArg(num);
+	for(auto a:param_){
+		message_.addIntArg(a);
+		cout<<a<<" ";
+	}
+	cout<<endl;
 	_osc_sender.sendMessage(message_);
 }
 
@@ -618,12 +645,27 @@ void ofApp::checkScan(SCANDIR dir_){
 void ofApp::setEffect(DEFFECT set_){
 
 	setMode(MODE::EFFECT);
-
+	int len_=0;
 	switch(set_){
 		case EDGE_WALK:
 			cv::findNonZero(_mat_thres,_mat_nonzero);
+			len_=_mat_nonzero.total();
+			_nonzero_point.clear();
+			_nonzero_start.clear();
+			for(int i=0;i<len_;++i){
+				_nonzero_point.push_back(_mat_nonzero.at<Point>(i));
+				if(i<len_/10.0){
+					_nonzero_start.push_back(_mat_nonzero.at<Point>(i));
+				}else if(i>len_/10.0*9){
+					_nonzero_gstart.push_back(_mat_nonzero.at<Point>(i));
+				}
+			}
 			_pacman.clear();
-			for(int i=0;i<3;++i) addPacMan();			
+			for(int i=0;i<3;++i){
+				addPacMan(false);			
+				addPacMan(true);			
+			}
+			break;
 		case SCAN:
 			_anim_scan.restart();
 			break;
@@ -704,78 +746,86 @@ void ofApp::stretchContrast(Mat& src_, Mat& dst_,int c1_,int c2_){
 
 void ofApp::updatePacMan(PacMan& p_){
 
+	ofVec2f pos_=p_.getPos();
 
 	//find next white
 	int next_=-100;	
-	int change[7]={0,1,-1,2,-2,3,-3};
+	vector<int> change_(4);
+	change_[0]=1;
+	change_[1]=-1;
+	change_[2]=2;
+	change_[3]=-2;
+	
+	random_shuffle(change_.begin(),change_.end());
 
-	for(int i=0;i<7;++i){
-		int n_=(p_._dir+change[i]+8)%8;
-		int x_=p_._pos.x+PacMan::Direction[n_].x*PACMANVEL;
-		int y_=p_._pos.y+PacMan::Direction[n_].y*PACMANVEL;
+	
+	//check original direction first
+	if(goodStep(p_,(p_._ghost?PacMan::GDirection[p_._dir]:PacMan::Direction[p_._dir]))){
+		next_=p_._dir;		
+	}else{	
+		
 
-		if(x_>=PWIDTH||x_<0 || y_>=PHEIGHT||y_<0) continue;
-
-		if(checkWhite(x_,y_)){
-			next_=n_;
-			break;
-		}
+		for(int i=0;i<4;++i){
+			int n_=(p_._dir+change_[i]+5)%5;
+			if(goodStep(p_,(p_._ghost?PacMan::GDirection[n_]:PacMan::Direction[n_]))){
+				next_=n_;
+				break;
+				//cout<<endl;
+			}
 						
+		}
+		//cout<<endl;
+
 	}
-	if(next_==-100){
-		//p_._pos=ofVec2f(ofRandom(0,PWIDTH),ofRandom(0,PHEIGHT));
-		/*int c=20;
-		while(c>0 && !checkWhite(p_._pos.x,p_._pos.y)){
-			p_._pos=ofVec2f(ofRandom(0,PWIDTH),ofRandom(0,PHEIGHT));
-			c--;
-		}*/
-		p_._pos=findWhiteStart();
-		p_._dir=(int)floor(ofRandom(8));
+	if(next_==-100){	
+		p_.restart(findWhiteStart(p_._ghost),3);		
 
 	}else{
-		p_._pos+=PacMan::Direction[next_]*PACMANVEL;
+		p_.setPos(pos_+(p_._ghost?PacMan::GDirection[next_]:PacMan::Direction[next_])*PACMANVEL);
 		p_._dir=next_;
-	}
-	
-
-
-/*
-	
-	if(p_._pos.x<0) p_._acc.x+=5.0;
-	if(p_._pos.x>PWIDTH) p_._acc.x-=5.0;
-
-	if(p_._pos.y<0) p_._acc.y+=5.0;
-	if(p_._pos.y>PHEIGHT) p_._acc.y-=5.0;
-
-*/
-
-	//update pos
-	/*p_._vel+=p_._acc;
-	p_._vel.normalize();
-	p_._vel*=5.0;
-*/
-	
+	}	
 
 }
+bool ofApp::goodStep(PacMan& p_,ofVec2f dir_){
+	int x_,y_;
+	ofVec2f pos_=p_.getPos();
+	x_=pos_.x+dir_.x*PACMANVEL;
+	y_=pos_.y+dir_.y*PACMANVEL;
 
-void ofApp::addPacMan(){
-	ofVec2f p=findWhiteStart();
-	_pacman.push_back(PacMan(p.x,p.y));
+	return !(x_>=PWIDTH||x_<0 || y_>=PHEIGHT||y_<0) &&
+		checkWhite(x_,y_) && !p_.alreadyPass(x_,y_);
+}
+
+void ofApp::addPacMan(bool ghost_){
+
+	if(_pacman.size()<MAXPACMAN){
+		ofVec2f p=findWhiteStart(ghost_);
+		_pacman.push_back(PacMan(p.x,p.y,ghost_));		
+	}
 }
 
 
 bool ofApp::checkWhite(int x_,int y_){
-	if(x_<0 || x_>=_mat_thres.cols || y_<0 || y_>=_mat_thres.rows) return false;
- 	return _mat_thres.at<uchar>(y_,x_)>0;
+	/*if(x_<0 || x_>=_mat_thres.cols || y_<0 || y_>=_mat_thres.rows) return false;
+ 	return _mat_thres.at<uchar>(y_,x_)>0;*/
+
+	return std::find(_nonzero_point.begin(),_nonzero_point.end(),Point(x_,y_))!=_nonzero_point.end();
+
 }
 
-ofVec2f ofApp::findWhiteStart(){
+ofVec2f ofApp::findWhiteStart(bool ghost_){
 	
-	int len_=_mat_nonzero.total();
-	int i_=floor(ofRandom(len_));
+	if(!ghost_){
+		int len_=_nonzero_start.size();
+		int i_=floor(ofRandom(len_));
 
-	return ofVec2f(_mat_nonzero.at<Point>(i_).x,_mat_nonzero.at<Point>(i_).y);
+		return ofVec2f(_nonzero_start[i_].x,_nonzero_start[i_].y);
+	}else{
+		int len_=_nonzero_gstart.size();
+		int i_=floor(ofRandom(len_));
 
+		return ofVec2f(_nonzero_gstart[i_].x,_nonzero_gstart[i_].y);
+	}
 
 	/*if(_collect_blob.size()<1) return ofVec2f(0,0);
 
@@ -813,4 +863,34 @@ void ofApp::selectBlob(){
 	std::sort(_not_selected.begin(),_not_selected.end());
 	
 	
+}
+
+
+void ofApp::triggerSound(bool short_){
+	vector<int> p_;
+	if(short_){
+		p_.push_back(2);
+		p_.push_back(floor(ofRandom(6)));
+		sendOSC("/live/play/clip",p_);
+	}else{
+		p_.push_back(3);
+		p_.push_back(0);
+		sendOSC("/live/play/clip",p_);
+	}
+
+
+}
+
+
+void ofApp::receiveOSC(){
+	while(_osc_receiver.hasWaitingMessages()){
+		// get the next message
+		ofxOscMessage m;
+		_osc_receiver.getNextMessage(m);
+		cout<<"recieve message: "<<m.getAddress()<<" ";
+		for(int i=0;i<m.getNumArgs();++i)
+			cout<<m.getArgAsInt(i)<<" ";
+		cout<<endl;
+	}
+
 }

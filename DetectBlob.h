@@ -3,7 +3,7 @@
 #define DETECT_BLOB_H
 
 #define LIFESPAN 3
-#define PACMANVEL 2
+#define PACMANVEL 1
 #define MBCOLOR 2
 
 #include "ofMain.h"
@@ -106,31 +106,38 @@ public:
 	}
 };
 class PacMan{
-
+private:
+	ofVec2f _pos;
 public:
 	static ofVec2f* Direction;
+	static ofVec2f* GDirection;
+
 	static float Rad;
 
-	ofVec2f _pos;
 	/*ofVec2f _vel;
 	ofVec2f _acc;*/
 	int _dir;
+	vector<ofVec2f> _path;
 
-	PacMan(){
+	bool _ghost;
+
+	PacMan(int d_){
 		_pos=ofVec2f(0,0);
-		_dir=floor(ofRandom(8));
-		
+		_dir=d_;
+		_ghost=false;
 	}
-	PacMan(float x_,float y_){
+	PacMan(float x_,float y_,bool g_){
 		_pos=ofVec2f(x_,y_);
-		_dir=floor(ofRandom(8));
+		_ghost=g_;
+		_dir=2;
 	}
 	void draw(){
 		ofPushMatrix();
 		ofTranslate(_pos.x,_pos.y);
 
 		ofPushStyle();
-		ofSetColor(255,255,0);
+		if(_ghost) ofSetColor(255,0,0);
+		else ofSetColor(0,0,255);
 		ofFill();
 
 		ofDrawCircle(0,0,Rad);
@@ -138,6 +145,24 @@ public:
 		ofPopStyle();
 		ofPopMatrix();
 	}
+	void setPos(ofVec2f p_){
+		_path.push_back(p_);
+		if(_path.size()>3) _path.erase(_path.begin());
+
+		_pos=p_;
+	}
+	bool alreadyPass(float x_,float y_){
+		return std::find(_path.begin(),_path.end(),ofVec2f(x_,y_))!=_path.end();
+	}
+	ofVec2f getPos(){
+		return _pos;
+	}
+	void restart(ofVec2f p_,int d_){
+		_path.clear();
+		_pos=p_;
+		_dir=d_;
+	}
+	
 };
 
 

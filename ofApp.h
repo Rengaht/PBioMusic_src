@@ -5,6 +5,7 @@ using namespace cv;
 
 #include "ofMain.h"
 #include "ofxOsc.h"
+#include "ofxSpout.h"
 
 #include "FrameTimer.h"
 #include "Parameter.h"
@@ -107,10 +108,11 @@ class ofApp : public ofBaseApp{
 	    Blob contourApproxBlob(vector<Point>& contour_);
 
 
-        void trigger(int mode_,int data_);
+        //osc
 	    ofxOscSender _osc_sender;
-	    void sendOSC(string address_,int num_);
-
+		ofxOscReceiver _osc_receiver;
+	    void sendOSC(string address_,vector<int> param_);
+		void receiveOSC();
 
 	    vector<vector<Point> > _contours;
 	    vector<Vec4i> _hierarchy;
@@ -132,11 +134,19 @@ class ofApp : public ofBaseApp{
  	
 	   //pacman
 	   Mat _mat_nonzero;
+	   vector<Point> _nonzero_point;
+	   vector<Point> _nonzero_start;
+	   vector<Point> _nonzero_gstart;
+
+
 	   vector<PacMan> _pacman;
+	   //vector<PacMan> _ghost;
 	   void updatePacMan(PacMan& p_);
 	   bool checkWhite(int x_,int y_);
-	   ofVec2f findWhiteStart();
-	   void addPacMan();
+	   bool goodStep(PacMan& p_,ofVec2f dir_);
+	   ofVec2f findWhiteStart(bool ghost_);
+	   void addPacMan(bool ghost_);
+	   
 
 	   //blob
 	   //int _mselect_blob;
@@ -146,4 +156,13 @@ class ofApp : public ofBaseApp{
 	   vector<DetectBlob> _selected;
 	   vector<DetectBlob> _not_selected;
 	   
+
+	   //sound
+	   void triggerSound(bool short_);
+
+
+	   //spout
+	   ofImage _spout_image;
+	   ofxSpout::Sender _spout_sender;
+
 };

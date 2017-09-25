@@ -24,6 +24,8 @@ public:
 	float _select_vel;
 	int _mselect;
 
+	string _live_addr;
+
 	GlobalParam(){
 		readParam();
 
@@ -53,6 +55,8 @@ public:
 		_select_vel=_param.getValue("SELECT_VEL",200);
 		_mselect=_param.getValue("MSELECT",5);
 
+		 _live_addr=_param.getValue("LIVE_ADDRESS","127.0.0.1");
+
 		if(!file_exist) saveParameterFile();
 
 	
@@ -70,6 +74,7 @@ public:
 
 		_param.setValue("MSELECT",_mselect);
 		_param.setValue("SELECT_VEL",_select_vel);
+		_param.setValue("LIVE_ADDRESS",_live_addr);
 
 		_param.save(ParamFilePath);
 
