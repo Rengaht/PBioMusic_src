@@ -32,6 +32,7 @@ public:
 	static ofVec2f _SelectStart;
 	int _id;
 	Blob _blob;
+    bool _draw_text;
 
 	DetectBlob(){
 		_trigger=false;
@@ -41,6 +42,8 @@ public:
 		_danim=FrameTimer(100,ofRandom(100));
 		_danim.setContinuous(true);
 		_danim.restart();
+        
+        _draw_text=ofRandom(5)<1;
 	}
 	void update(float dt_){
 		_danim.update(dt_);
@@ -53,10 +56,24 @@ public:
 		/*if(_trigger) _danim.restart();
 		else _danim.stop();*/
 	}
-	void draw(float p_,bool fill_){
+	void draw(float p_,bool fill_,ofTrueTypeFont& font_){
 
 		if(!_trigger) return;
-		drawTriggered(p_,fill_);
+        
+        drawTriggered(p_,fill_);
+        
+        if(_draw_text){
+            
+            ofPushStyle();
+            ofSetColor(255,120);
+                ofPushMatrix();
+                    int i=floor(_blob._contours.size()*p_);
+                    if(!fill_) font_.drawString(ofToString(_blob._contours[i].x)+","+ofToString(_blob._contours[i].y),_blob._center.x,_blob._center.y);
+                    else font_.drawString(ofToString(_blob._center.x)+","+ofToString(_blob._center.y),_blob._center.x,_blob._center.y);
+                ofPopMatrix();
+            ofPopStyle();
+        }
+        
 	}
 	void drawTriggered(float p_,bool fill_){
 		ofPushStyle();

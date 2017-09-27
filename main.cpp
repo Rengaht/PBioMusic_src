@@ -9,7 +9,7 @@
 string GlobalParam::ParamFilePath="_param.xml";
 ofVec2f* PacMan::Direction=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,1),ofVec2f(0,1),ofVec2f(-1,1),ofVec2f(-1,0)};
 ofVec2f* PacMan::GDirection=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,-1),ofVec2f(0,-1),ofVec2f(-1,-1),ofVec2f(-1,0)};
-float PacMan::Rad=8;
+float PacMan::Rad=6;
 int PacMan::MPathRecord=6;
 ofColor* PacMan::GColor=new ofColor[4]{ofColor(0,255,222),ofColor(255,184,222),ofColor(255,184,71),ofColor(255,0,0)};
 

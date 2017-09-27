@@ -22,7 +22,7 @@ void ofApp::setup(){
     _camera.listDevices();
     _camera.setDeviceID(1);
 	_camera.setVerbose(true);
-	_camera.setup(VWIDTH,VHEIGHT);
+	_camera.setup(PWIDTH,PHEIGHT);
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #endif
 
@@ -57,6 +57,7 @@ void ofApp::setup(){
     
     
     _hist_size=256;
+    _do_fft=false;
 
 	//setup spout
 #ifdef _WIN64
@@ -69,9 +70,11 @@ void ofApp::setup(){
     _img_mask.load("mask.png");
     _font.load("Menlo.ttc",7);
     
-    _serial.listDevices();
-    _serial.setup(_param->_seiral_port,9600);
+
     
+    _serial.listDevices();
+    //_serial.setup(_param->_serial_port,9600);
+    _serial.setup(0,9600);
 }
                                
 //--------------------------------------------------------------
@@ -191,6 +194,7 @@ void ofApp::draw(){
 
 	ofPushMatrix();
     ofTranslate(ofGetWidth()/2-VHEIGHT/2,ofGetHeight()/2-VHEIGHT/2);
+    
     ofScale(ratio_,ratio_);
     
     
@@ -233,7 +237,7 @@ void ofApp::draw(){
 					ofPopStyle();
 
 					ofPushMatrix();
-						for(auto& b:_collect_blob) b.draw(_anim_detect.val(),false);
+						for(auto& b:_collect_blob) b.draw(_anim_detect.val(),false,_font);
 					ofPopMatrix();
 					break;
 				case 4:
@@ -252,7 +256,7 @@ void ofApp::draw(){
 					ofPopStyle();
 
 					ofPushMatrix();
-						for(auto& b:_collect_blob) b.draw(1.0,false);
+						for(auto& b:_collect_blob) b.draw(1.0,false,_font);
 					ofPopMatrix();
 
 					break;
@@ -268,8 +272,9 @@ void ofApp::draw(){
 				_img_resize.draw(0,0,PHEIGHT,PHEIGHT);
 				_report1<<"effect:scan"<<endl;
                 _report1<<"mtrigger="<<endl;
-				for(auto& b:_collect_blob) b.draw(1.0,false);
-
+                    for(auto& b:_collect_blob){
+                        b.draw(1.0,false,_font);
+                    }
 				ofPushStyle();
 				ofSetColor(255,0,0,255);
 				ofNoFill();
@@ -323,9 +328,9 @@ void ofApp::draw(){
 				len_=_selected.size();
 				if(len_>1){
 					for(int i=0;i<len_-1;++i){
-						_selected[i].draw(1.0,true);
+						_selected[i].draw(1.0,true,_font);
 					}
-					_selected[len_-1].draw(_anim_select.val(),true);
+					_selected[len_-1].draw(_anim_select.val(),true,_font);
 				}
 
 				_report1<<"effect:blob"<<endl;
@@ -348,15 +353,22 @@ void ofApp::draw(){
 	
 	_report1<<"fps=" << ofGetFrameRate()<<endl;
     
-	//ofDrawBitmapString(reportStr.str(),0,0);
-    if(_mode==MODE::RUN) drawAnalysis(0,40,200,20);
+    
+    //ofDrawBitmapString(reportStr.str(),0,0);
+    if(_mode==MODE::RUN) drawAnalysis(-50,0,PWIDTH*.7,50);
+    
+    ofScale(ratio_,ratio_);
+    
     _font.drawString(_report1.str(),0,0);
     _font.drawString(_report2.str(),60,-6);
     
+    
     ofPopMatrix();
     
+    ofPushMatrix();
+    //ofSetColor(255,20);
     _img_mask.draw(0,0);
-
+    ofPopMatrix();
     
     //send spout
 #ifdef _WIN64
@@ -448,6 +460,7 @@ void ofApp::cvAnalysis(cv::Mat& grab_){
     int channels_[]={0};
     cv::calcHist(&grab_,1,channels_,cv::Mat(),_hist,1,&_hist_size,&histRange);
     
+    if(!_do_fft) return;
     cv::cvtColor(grab_,_mat_gray,CV_BGR2GRAY);
     cv::Mat padded;
     int m = cv::getOptimalDFTSize(grab_.rows);
@@ -476,56 +489,81 @@ void ofApp::cvAnalysis(cv::Mat& grab_){
 
 void ofApp::drawAnalysis(float x_,float y_,float wid_,float hei_){
     
-    float skip_=60;
-    float mplot_=_hist_size-skip_*2;
+    float skip_=80;
+    float mplot_=50;
     
-    float histwid_=wid_/mplot_;
+    float histwid_=wid_/skip_;
     
     double maxval_;
     cv::minMaxLoc(_hist,0,&maxval_,0,0);
     _report2<<"hist max="<<maxval_<<endl;
     
     ofPushMatrix();
-    ofTranslate(x_,y_+hei_);
+    ofTranslate(x_,y_+hei_/2);
     ofPushStyle();
-    ofSetColor(255);
+    ofSetColor(255,120);
     ofNoFill();
     //ofSetLineWidth(histwid_);
     
     ofBeginShape();
-    for(int i=skip_;i<_hist_size-skip_;++i){
-        float binVal=_hist.at<float>(i);
+    for(int i=0;i<skip_;++i){
+        float binVal=_hist.at<float>((int)(i+ofGetFrameNum()+skip_)%(int)(_hist_size-skip_*2));
         float intensity=round(binVal*hei_/maxval_);
-        ofVertex((i-skip_)*histwid_,-intensity);
+        float x=(i)*histwid_;
+        
+        ofVertex(x,-intensity);
+        ofPushStyle();
+        ofFill();
+        ofDrawCircle(x,-intensity,1);
+        ofPopStyle();
     }
     ofEndShape();
+//    for(int i=skip_;i<_hist_size-skip_;++i){
+//        float binVal=_hist.at<float>(i);
+//        float intensity=round(binVal*hei_/maxval_);
+//        ofVertex((i-skip_)*histwid_,-intensity);
+//    }
     
-    
+    if(_do_fft){
     double fftmax_;
     cv::minMaxLoc(_mat_fft,0,&fftmax_,0,0);
-    _report2<<"fft max="<<fftmax_<<endl;
+    _report2<<"calc dft"<<endl;
     
-    ofTranslate(wid_/4,-hei_);
+    float fwid_=histwid_*2.0;
+    ofTranslate(-wid_/6,hei_*3);
     //ofRotate(-90);
-    ofSetColor(255);
+    ofSetColor(255,120);
     ofNoFill();
     //ofSetLineWidth(histwid_);
+    int fr_=ofGetFrameNum();
+    int col_=_mat_fft.cols;
+    int row_=_mat_fft.rows;
     
-    for(int i=0;i<15;++i){
-        ofTranslate(sin(i)*wid_/4,hei_/2);
-        ofBeginShape();
-            int col_=_mat_fft.cols;
-            int row_=_mat_fft.rows;
-    
+    for(int i=0;i<mplot_;++i){
+        
+        ofPushMatrix();
+//        ofTranslate(sin(_mat_fft.at<float>(i,col_-1))*wid_*.5,-hei_*.3*i);
+          ofTranslate(0,-hei_*.3*i);
+//        ofBeginShape();
+           
             float step_=2;
+            float avb_=0;
             for(int j=0;j<mplot_;j++){
-                float binVal=_mat_fft.at<float>(i,(ofGetFrameNum()+j)%col_);
+                float binVal=_mat_fft.at<float>(i,(int)(j)%col_);
                 float intensity=round(binVal*3*hei_/fftmax_);
-                ofVertex(j*histwid_,-intensity);
+//                ofVertex(j*histwid_,-intensity);
+                
+                ofPushStyle();
+                ofFill();
+                ofDrawCircle(j*fwid_,-intensity,1);
+                ofPopStyle();
+                avb_+=binVal;
             }
-        ofEndShape();
+           // if(ofNoise(avb_)<.33) _font.drawString(ofToString(avb_/mplot_),wid_/2,0);
+        ofPopMatrix();
+//        ofEndShape();
     }
-    
+    }
     
     ofPopStyle();
     ofPopMatrix();
@@ -537,12 +575,17 @@ void ofApp::updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hi
     // approx contour
     int clen=contour_.size();
     vector<Blob> blob_;
-    float frame_=PWIDTH*PHEIGHT;
+    float frame_=PHEIGHT*PHEIGHT;
     
     for(int i=0;i<clen;++i){
+        Blob b_=contourApproxBlob(contour_[i]);
+        float d_=ofDist(b_._center.x, b_._center.y,PHEIGHT/2,PHEIGHT/2);
+        if(d_>PHEIGHT/2) continue;
+        
         float area_=cv::contourArea(contour_[i]);
         if(area_>_param->_blob_small && area_<_param->_blob_large*frame_)
             blob_.push_back(contourApproxBlob(contour_[i]));
+        
     }
     
     _collect_blob.clear();
@@ -696,6 +739,9 @@ void ofApp::keyPressed(int key){
 		case 'l':
 			triggerSound(false);
 			break;
+        case 'f':
+            _do_fft=!_do_fft;
+            break;
 	}
 }
 #pragma region OF_UI
@@ -768,14 +814,14 @@ void ofApp::setMode(MODE set_){
 
 void ofApp::sendOSC(string address_,vector<float> param_){
 
-	cout<<"send osc: "<<address_<<" ";
+	//cout<<"send osc: "<<address_<<" ";
 	ofxOscMessage message_;
 	message_.setAddress(address_);
 	for(auto a:param_){
 		message_.addIntArg(a);
-		cout<<a<<" ";
+	//	cout<<a<<" ";
 	}
-	cout<<endl;
+	//cout<<endl;
 	_osc_sender.sendMessage(message_);
 }
 
@@ -847,12 +893,18 @@ void ofApp::setEffect(DEFFECT set_){
 			_nonzero_point.clear();
 			_nonzero_start.clear();
 			for(int i=0;i<len_;++i){
-                _nonzero_point.push_back(_mat_nonzero.at<cv::Point>(i));
-				if(i<len_/10.0){
-                    _nonzero_start.push_back(_mat_nonzero.at<cv::Point>(i));
-				}else if(i>len_/10.0*9){
-                    _nonzero_gstart.push_back(_mat_nonzero.at<cv::Point>(i));
-				}
+                
+                cv::Point p_=_mat_nonzero.at<cv::Point>(i);
+                
+                _nonzero_point.push_back(p_);
+                
+                if(ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2)<PHEIGHT/2){
+                    if(i<len_/10.0){
+                        _nonzero_start.push_back(p_);
+                    }else if(i>len_/10.0*9){
+                        _nonzero_gstart.push_back(p_);
+                    }
+                }
 			}
 			_pacman.clear();
 			for(int i=0;i<3;++i){
@@ -1150,5 +1202,79 @@ void ofApp::receiveOSC(){
 
 void ofApp::updateSerial(){
     
-
+    if(_serial.isInitialized() && _serial.available()){
+        vector<string> val=readSerialString(_serial,'#');
+        if(val.size()<1) return -1;
+        //ofLog()<<"serial read: "<<ofToString(val)<<endl;
+        
+        
+        if(val[0]=="set_0"){
+            if(_mode!=MODE::EFFECT || _effect!=DEFFECT::SCAN){
+                _next_effect=DEFFECT::SCAN;
+                setMode(MODE::DETECT);
+            }else{
+                setMode(MODE::RUN);
+            }
+        }else if(val[0]=="set_1"){
+            if(_mode!=MODE::EFFECT || _effect!=DEFFECT::BLOB_SELECT){
+                _next_effect=DEFFECT::BLOB_SELECT;
+                setMode(MODE::DETECT);
+            }else{
+                setMode(MODE::RUN);
+            }
+        }else if(val[0]=="set_2"){
+            if(_mode!=MODE::EFFECT || _effect!=DEFFECT::EDGE_WALK){
+                _next_effect=DEFFECT::EDGE_WALK;
+                setMode(MODE::DETECT);
+            }else{
+                setMode(MODE::RUN);
+            }
+        }
+        
+        // motor
+        if(val[0]=="motor_clock"){
+            
+        }else if(val[0]=="motor_reverse"){
+            
+        }
+        
+        // effect tune
+        if(_mode!=MODE::EFFECT) return;
+        if(_effect==DEFFECT::EDGE_WALK){
+            if(val[0]=="add_pac"){
+                addPacMan(false);
+            }else if(val[0]=="add_ghost"){
+                addPacMan(true);
+            }
+        }
+        if(_effect==DEFFECT::BLOB_SELECT){
+            if(val[0]=="blob_reset"){
+                setEffect(DEFFECT::BLOB_SELECT);
+            }else if(val[0]=="speed_b"){
+                float v=ofToFloat(val[1]);
+                _anim_select.setDue(_param->_select_vel*(1.0+v/255.0*4.0));
+            }
+        }
+        if(_effect==DEFFECT::SCAN){
+            if(val[0]=="scan_line"){
+                _scan_dir=SCANDIR::VERT;
+            }else if(val[0]=="scan_radial"){
+                _scan_dir=SCANDIR::RADIAL;
+            }else if(val[0]=="speed_a"){
+                float v=ofToFloat(val[1]);
+                _anim_scan.setDue(_param->_scan_vel*(1.0+v/255.0*4.0));
+            }
+        }
+        
+    
+    }
+    
+    
 }
+
+
+
+
+
+
+

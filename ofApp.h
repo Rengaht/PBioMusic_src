@@ -13,13 +13,13 @@
 #endif
 
 
-
+#include "StringUtil.h"
 #include "FrameTimer.h"
 #include "Parameter.h"
 #include "DetectBlob.h"
 
 //#define USE_VIDEO
-#define USE_REF
+//#define USE_REF
 
 #define VWIDTH 580.0
 #define VHEIGHT 580.0
@@ -134,6 +134,7 @@ class ofApp : public ofBaseApp{
 		FrameTimer _anim_detect;
 		int _idetect_view;
     
+        bool _do_fft;
         cv::Mat _mat_fft;
         stringstream _report1,_report2;
     
@@ -200,7 +201,7 @@ class ofApp : public ofBaseApp{
         ofTrueTypeFont _font;
     
     
-        ofSerial	_serial;
+        ofSerial _serial;
         void updateSerial();
     
     
