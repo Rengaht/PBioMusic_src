@@ -1,21 +1,28 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
-using namespace cv;
+//using namespace cv;
 
 #include "ofMain.h"
 #include "ofxOsc.h"
+
+#ifdef _WIN64
 #include "ofxSpout.h"
+#elif __APPLE__
+#include "ofxSyphon.h"
+#endif
+
+
 
 #include "FrameTimer.h"
 #include "Parameter.h"
 #include "DetectBlob.h"
 
 //#define USE_VIDEO
-//#define USE_REF
+#define USE_REF
 
-#define VWIDTH 640.0	
-#define VHEIGHT 480.0
+#define VWIDTH 580.0
+#define VHEIGHT 580.0
 
 #define PWIDTH 640.0
 #define PHEIGHT 480.0
@@ -70,7 +77,7 @@ class ofApp : public ofBaseApp{
 #else
 		ofVideoGrabber 		_camera;
 #endif
-		Mat _mat_grab,_mat_resize,_mat_gray,_mat_normalize,
+        cv::Mat _mat_grab,_mat_scale,_mat_resize,_mat_gray,_mat_normalize,
 			_mat_thres,_mat_edge;
 
 		ofPixels _output_pixels;
@@ -79,8 +86,8 @@ class ofApp : public ofBaseApp{
 
 		ofImage _img_ref;
 
-		Mat imageToMat(ofImage& img_);
-		ofImage matToImage(Mat& mat_);
+        cv::Mat imageToMat(ofImage& img_);
+        ofImage matToImage(cv::Mat& mat_);
 
 		
 		enum MODE {RUN,DETECT,EFFECT};
@@ -92,7 +99,12 @@ class ofApp : public ofBaseApp{
 		void setEffect(DEFFECT set_);
 		
 		bool updateSource();
-		void cvProcess(Mat& grab_);
+        void cvProcess(cv::Mat& grab_);
+        void cvAnalysis(cv::Mat& grab_);
+        cv::Mat _hist;
+        int _hist_size;
+    
+        void drawAnalysis(float x_,float y_,float wid_,float hei_);
 		
 	    void drawContours(float p_=1);
 
@@ -102,25 +114,29 @@ class ofApp : public ofBaseApp{
 	    bool isScanned(DetectBlob blob_);
 	    bool isSimilar(Blob b1_,Blob b2_);
 
-	    void stretchContrast(Mat& src_,Mat& dst_,int c1_,int c2_);
+        void stretchContrast(cv::Mat& src_,cv::Mat& dst_,int c1_,int c2_);
 
-	    void updateBlob(vector<vector<Point>>& contour_,vector<Vec4i>& hierachy_);
-	    Blob contourApproxBlob(vector<Point>& contour_);
-
+        void updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hierachy_);
+        Blob contourApproxBlob(vector<cv::Point>& contour_);
+    
 
         //osc
 	    ofxOscSender _osc_sender;
 		ofxOscReceiver _osc_receiver;
-	    void sendOSC(string address_,vector<int> param_);
+	    void sendOSC(string address_,vector<float> param_);
 		void receiveOSC();
 
-	    vector<vector<Point> > _contours;
-	    vector<Vec4i> _hierarchy;
+        vector<vector<cv::Point> > _contours;
+        vector<cv::Vec4i> _hierarchy;
 
 
 		//detect
 		FrameTimer _anim_detect;
-		int _idetect_view;	   
+		int _idetect_view;
+    
+        cv::Mat _mat_fft;
+        stringstream _report1,_report2;
+    
     
         //scan
 		FrameTimer _anim_scan;
@@ -133,25 +149,29 @@ class ofApp : public ofBaseApp{
 
  	
 	   //pacman
-	   Mat _mat_nonzero;
-	   vector<Point> _nonzero_point;
-	   vector<Point> _nonzero_start;
-	   vector<Point> _nonzero_gstart;
+        cv::Mat _mat_nonzero;
+	   vector<cv::Point> _nonzero_point;
+	   vector<cv::Point> _nonzero_start;
+	   vector<cv::Point> _nonzero_gstart;
 
 
 	   vector<PacMan> _pacman;
-	   //vector<PacMan> _ghost;
-	   void updatePacMan(PacMan& p_);
+	   ofFbo _fbo_pacman;
+        //vector<PacMan> _ghost;
+	   
+       void updatePacMan(PacMan& p_);
 	   bool checkWhite(int x_,int y_);
 	   bool goodStep(PacMan& p_,ofVec2f dir_);
 	   ofVec2f findWhiteStart(bool ghost_);
 	   void addPacMan(bool ghost_);
-	   
-
+    
+       void checkPacManCollide();
+    
+    
 	   //blob
 	   //int _mselect_blob;
 	   FrameTimer _anim_select;
-	   void selectBlob();
+	   float selectBlob();
 	   
 	   vector<DetectBlob> _selected;
 	   vector<DetectBlob> _not_selected;
@@ -159,10 +179,29 @@ class ofApp : public ofBaseApp{
 
 	   //sound
 	   void triggerSound(bool short_);
-
+       void remoteVolume(int track_,float vol_);
+       void triggerTurn();
+       void triggerCollide(bool ghost_);
+       void triggerDead();
+       void triggerScan(int num_,float area_);
 
 	   //spout
-	   ofImage _spout_image;
-	   ofxSpout::Sender _spout_sender;
-
+	   ofImage _sender_image;
+#ifdef _WIN64
+	   ofxSpout::Sender _frame_sender;
+#elif TARGET_OS_MAC
+        ofxSyphonServer _frame_sender;
+#endif
+    
+    
+        ofImage _img_mask;
+    
+    
+        ofTrueTypeFont _font;
+    
+    
+        ofSerial	_serial;
+        void updateSerial();
+    
+    
 };

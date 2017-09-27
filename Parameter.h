@@ -25,6 +25,7 @@ public:
 	int _mselect;
 
 	string _live_addr;
+    string _serial_port;
 
 	GlobalParam(){
 		readParam();
@@ -56,6 +57,8 @@ public:
 		_mselect=_param.getValue("MSELECT",5);
 
 		 _live_addr=_param.getValue("LIVE_ADDRESS","127.0.0.1");
+        
+        _serial_port=_param.getValue("SERIAL_PORT","/dev/cu.usbmodem1461");
 
 		if(!file_exist) saveParameterFile();
 
@@ -75,6 +78,8 @@ public:
 		_param.setValue("MSELECT",_mselect);
 		_param.setValue("SELECT_VEL",_select_vel);
 		_param.setValue("LIVE_ADDRESS",_live_addr);
+        
+        _param.setValue("SERIAL_PORT",_serial_port);
 
 		_param.save(ParamFilePath);
 
