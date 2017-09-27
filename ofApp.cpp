@@ -149,7 +149,8 @@ void ofApp::update(){
 					if(_anim_select.val()>=1){						
                         if(_not_selected.size()>0){
                             float char_=selectBlob();
-                            remoteVolume(2, char_);
+                            //remoteVolume(0, char_);
+                            triggerSound(false);
                         }else{
                             setEffect(DEFFECT::BLOB_SELECT);
                         }
@@ -734,6 +735,7 @@ void ofApp::keyPressed(int key){
 			_param->saveParameterFile();
 			break;
 		case 'k':
+            //sendOSC("/live/tempo",vector<float>());
 			triggerSound(true);
 			break;
 		case 'l':
@@ -814,14 +816,14 @@ void ofApp::setMode(MODE set_){
 
 void ofApp::sendOSC(string address_,vector<float> param_){
 
-	//cout<<"send osc: "<<address_<<" ";
+	cout<<"send osc: "<<address_<<" ";
 	ofxOscMessage message_;
 	message_.setAddress(address_);
 	for(auto a:param_){
 		message_.addIntArg(a);
-	//	cout<<a<<" ";
+		cout<<a<<" ";
 	}
-	//cout<<endl;
+	cout<<endl;
 	_osc_sender.sendMessage(message_);
 }
 
@@ -875,7 +877,10 @@ void ofApp::checkScan(SCANDIR dir_){
     }
     _report2<<"mtrigger="<<mtrigger<<endl
             <<"cover area="<<trigger_area<<endl;
-    triggerScan(mtrigger,trigger_area);
+    
+    
+    //if(ofGetFrameNum()%60==0)
+        triggerScan(mtrigger,trigger_area);
     
     
     
@@ -1036,7 +1041,7 @@ void ofApp::updatePacMan(PacMan& p_){
 		p_.setPos(pos_+(p_._ghost?PacMan::GDirection[next_]:PacMan::Direction[next_])*PACMANVEL);
 		p_._dir=next_;
         
-        if(abs(next_)>=2) triggerTurn();
+        //if(abs(next_)>=2) triggerTurn();
 	}	
 
 }
@@ -1126,6 +1131,8 @@ float ofApp::selectBlob(){
 	for(int i=0;i<_mselect_blob;++i){
 		_collect_blob[i].setTrigger(true);
 	}*/
+    if(_not_selected.size()<1) return 0;
+    
 	DetectBlob b=_not_selected[0];
 	DetectBlob::_SelectStart=ofVec2f(b._blob._center.x,b._blob._center.y);
 
@@ -1146,16 +1153,18 @@ float ofApp::selectBlob(){
 
 void ofApp::triggerSound(bool short_){
 	vector<float> p_;
-	if(short_){
-		p_.push_back(2);
-		p_.push_back(floor(ofRandom(6)));
-		sendOSC("/live/play/clip",p_);
-	}else{
-		p_.push_back(3);
-		p_.push_back(0);
-		sendOSC("/live/play/clip",p_);
-	}
-
+//	if(short_){
+//		p_.push_back(0);
+//		p_.push_back(floor(ofRandom(7)));
+//		sendOSC("/live/play/clip",p_);
+//	}else{
+//		p_.push_back(1);
+//		p_.push_back(floor(ofRandom(13)));
+//		sendOSC("/live/play/clip",p_);
+//	}
+    p_.push_back(0);
+    p_.push_back(floor(ofRandom(6)));
+    sendOSC("/live/play/clip",p_);
 
 }
 
@@ -1179,7 +1188,8 @@ void ofApp::triggerDead(){
 }
 
 void ofApp::triggerScan(int num_,float area_){
-    remoteVolume(2,area_/(PHEIGHT*PHEIGHT*_param->_blob_large));
+   // remoteVolume(2,area_/(PHEIGHT*PHEIGHT*_param->_blob_large));
+    for(int i=0;i<ofClamp(num_,0,2);++i) triggerSound(true);
 }
 
 #pragma mark COMMUNICATION
