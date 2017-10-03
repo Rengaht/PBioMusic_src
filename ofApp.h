@@ -13,19 +13,23 @@
 #endif
 
 
+#define VWIDTH 585.0
+#define VHEIGHT 585.0
+
+#define PWIDTH 640.0
+#define PHEIGHT 480.0
+
+
 #include "StringUtil.h"
 #include "FrameTimer.h"
 #include "Parameter.h"
 #include "DetectBlob.h"
+#include "Pacman.h"
+
 
 //#define USE_VIDEO
 //#define USE_REF
 
-#define VWIDTH 580.0
-#define VHEIGHT 580.0
-
-#define PWIDTH 640.0
-#define PHEIGHT 480.0
 //#define SIZE_LOW 20
 //#define SIZE_HIGH .1
 
@@ -77,12 +81,12 @@ class ofApp : public ofBaseApp{
 #else
 		ofVideoGrabber 		_camera;
 #endif
-        cv::Mat _mat_grab,_mat_scale,_mat_resize,_mat_gray,_mat_normalize,
-			_mat_thres,_mat_edge;
+        cv::Mat _mat_grab,_mat_scale,_mat_resize,_mat_contrast,_mat_gray,_mat_normalize,
+			_mat_thres,_mat_edge,_mat_morph;
 
 		ofPixels _output_pixels;
 		ofImage _img_resize,_img_gray,_img_normalize,_img_thres,
-			    _img_contrast,_img_edge;
+			    _img_contrast,_img_edge,_img_morph;
 
 		ofImage _img_ref;
 
@@ -94,7 +98,7 @@ class ofApp : public ofBaseApp{
         MODE _mode;
 		void setMode(MODE set_);
 		
-		enum DEFFECT {SCAN,EDGE_WALK,BLOB_SELECT};   
+		enum DEFFECT {SCAN,EDGE_WALK,BLOB_SELECT,BIRD};
 		DEFFECT _effect,_next_effect;
 		void setEffect(DEFFECT set_);
 		
@@ -118,6 +122,8 @@ class ofApp : public ofBaseApp{
 
         void updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hierachy_);
         Blob contourApproxBlob(vector<cv::Point>& contour_);
+    
+    
     
 
         //osc
@@ -165,6 +171,7 @@ class ofApp : public ofBaseApp{
 	   bool goodStep(PacMan& p_,ofVec2f dir_);
 	   ofVec2f findWhiteStart(bool ghost_);
 	   void addPacMan(bool ghost_);
+       void removePacMan();
     
        void checkPacManCollide();
     
@@ -176,7 +183,11 @@ class ofApp : public ofBaseApp{
 	   
 	   vector<DetectBlob> _selected;
 	   vector<DetectBlob> _not_selected;
-	   
+    
+    
+      //bird
+      vector<DetectBlob> _bird;
+       
 
 	   //sound
 	   void triggerSound(bool short_);

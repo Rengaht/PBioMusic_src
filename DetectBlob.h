@@ -27,12 +27,25 @@ private:
 	int _life;
 	int _color;
 	FrameTimer _danim;
+    
+    
+    
+    
 public:
 	static ofColor* BColor;
-	static ofVec2f _SelectStart;
 	int _id;
 	Blob _blob;
     bool _draw_text;
+    
+    
+    //flocking
+    ofVec2f _floc,_fvel,_facc;
+    
+    static float MaxSpeed;
+    static float MaxForce;
+    static ofVec2f Center;
+    
+    ofColor _center_color;
 
 	DetectBlob(){
 		_trigger=false;
@@ -48,14 +61,18 @@ public:
 	void update(float dt_){
 		_danim.update(dt_);
 	}
+    
 	void setTrigger(bool set_){
 
-		if(_trigger==set_) return;
+		//if(_trigger==set_) return;
 
 		_trigger=set_;
 		/*if(_trigger) _danim.restart();
 		else _danim.stop();*/
 	}
+    bool getTrigger(){
+        return _trigger;
+    }
 	void draw(float p_,bool fill_,ofTrueTypeFont& font_){
 
 		if(!_trigger) return;
@@ -78,7 +95,7 @@ public:
 	void drawTriggered(float p_,bool fill_){
 		ofPushStyle();
 		
-		float d_=1.0*_danim.val();
+		float d_=0.0*_danim.val();
 		ofPushMatrix();
 		ofTranslate(-d_,-d_);
 			ofSetColor(DetectBlob::BColor[1],255.0*p_);
@@ -104,7 +121,48 @@ public:
 		
 		ofPopStyle();
 	}
-	
+    void fdraw(){
+        
+        ofPushStyle();
+        float d_=2.0*_danim.val();
+        
+        if(_trigger){
+            ofPushMatrix();
+            ofTranslate(-d_,-d_);
+            
+            ofSetColor(DetectBlob::BColor[1],120.0);
+            ofFill();
+                drawShape(1.0);
+            ofPopMatrix();
+            
+            ofPushMatrix();
+            ofTranslate(d_,d_);
+            ofSetColor(DetectBlob::BColor[0],120.0);
+            ofFill();
+                drawShape(1.0);
+            ofPopMatrix();
+            
+        }
+        
+        ofPushMatrix();
+        ofTranslate(_floc.x-_blob._center.x,_floc.y-_blob._center.y);
+        
+        ofTranslate(_blob._contours[0].x,_blob._contours[0].y);
+        ofRotate(ofRadToDeg(atan2(_floc.y,_floc.x)));
+        ofTranslate(-_blob._contours[0].x,-_blob._contours[0].y);
+
+            ofPushMatrix();
+            ofTranslate(0,0);
+            if(_trigger) ofSetColor(255,120);
+            else ofSetColor(_center_color,120);
+            ofFill();
+                drawShape(1.0);
+            ofPopMatrix();
+        
+        ofPopMatrix();
+        
+        ofPopStyle();
+    }
 
 	void drawDebug(){
 		ofPopStyle();
@@ -124,132 +182,146 @@ public:
 					    _blob._bounding.width,_blob._bounding.height);		
 	}
 	bool operator<(const DetectBlob& b) const{
-		return _SelectStart.distance(ofVec2f(_blob._center.x,_blob._center.y))
-			<_SelectStart.distance(ofVec2f(b._blob._center.x,b._blob._center.y));
+		return Center.distance(ofVec2f(_blob._center.x,_blob._center.y))
+			<Center.distance(ofVec2f(b._blob._center.x,b._blob._center.y));
 	}
-};
-class PacMan{
-private:
-	ofVec2f _pos;
-public:
-	static ofVec2f* Direction;
-	static ofVec2f* GDirection;
-    static int MPathRecord;
-    static ofColor* GColor;
-
-	static float Rad;
     
-
-	/*ofVec2f _vel;
-	ofVec2f _acc;*/
-	int _dir;
-	vector<ofVec2f> _path;
-
-	bool _ghost;
-    int _gcolor;
-    
-    bool _dead;
-    FrameTimer _timer_dead;
-    
-	PacMan(int d_){
-		_pos=ofVec2f(0,0);
-		_dir=d_;
-		_ghost=false;
-        _gcolor=floor(ofRandom(4));
+    void finit(ofColor color_){
+        _floc=ofVec2f(_blob._center.x,_blob._center.y);
+        _fvel=ofVec2f(0,0);
+        //_fvel.rotate(ofRandom(360));
         
-        _timer_dead=FrameTimer(500);
-        _dead=false;
-	}
-	PacMan(float x_,float y_,bool g_){
-		_pos=ofVec2f(x_,y_);
-		_ghost=g_;
-		_dir=2;
-        _gcolor=floor(ofRandom(4));
+        _trigger=false;
         
-        _timer_dead=FrameTimer(500);
-        _dead=false;
+        _center_color=color_;
     }
-    void update(float dt_){
-        _timer_dead.update(dt_);
+    void fupdate(vector<DetectBlob>& boids,float dt_){
+        
+        update(dt_);
+        
+         flock(boids);
+        
+        _fvel+=_facc;
+        _fvel.limit(MaxSpeed);
+        _floc+=_fvel;
+        
+        _facc*=0;
     }
-	void draw(){
-//        float life_=_path.size();
-//        for(int i=0;i<life_;++i){
-//            ofPushMatrix();
-//            ofTranslate(_path[i].x,_path[i].y);
-//
-//            ofPushStyle();
-//            
-//            float alpha_=255;//(float)i/life_*255.0;
-//            
-//            if(_ghost) ofSetColor(GColor[_gcolor],alpha_);
-//            else ofSetColor(255,255,0,alpha_);
-//            ofFill();
-//
-//            ofDrawCircle(0,0,Rad);
-//		
-//            ofPopStyle();
-//            ofPopMatrix();
-//        }
+
+    /* flocking */
+    void flock(vector<DetectBlob>& boids){
+        ofVec2f sep=seperate(boids);
+        ofVec2f ali=align(boids);
+        ofVec2f coh=cohesion(boids);
+        
+        sep*=1.5;
+        ali*=1.0;
+        coh*=1.0;
+        
+        applyForce(sep);
+        applyForce(ali);
+        applyForce(coh);
+        
+        
+        // boundary
+//        ofVec2f desired;
+//         if(_floc.x>PHEIGHT){
+//            // desired=ofVec2f(-MaxSpeed,_fvel.y);
+//             applyForce(ofVec2f(-MaxForce*3,0));
+//         }else if(_floc.x<0){
+//            // desired=ofVec2f(MaxSpeed,_fvel.y);
+//             applyForce(ofVec2f(MaxForce*3,0));
+//         }
+//         if(_floc.y>PHEIGHT){
+//            // desired=ofVec2f(_fvel.x,-MaxSpeed);
+//             applyForce(ofVec2f(0,-MaxForce*3));
+//         }else if(_floc.y<0){
+//           //  desired=ofVec2f(_fvel.x,MaxSpeed);
+//             applyForce(ofVec2f(0,MaxForce*3));
+//         }
+//         if(desired.length()>0){
+//             ofVec2f steer=desired-_fvel;
+//             steer.limit(MaxForce*5);
+//             applyForce(steer);
+//         }
+        
+        //center
+        ofVec2f cent_desired=Center-_floc;
+        ofVec2f cent_steer=cent_desired-_fvel;
+        cent_steer.limit(MaxForce*2);
+        applyForce(cent_steer);
+    }
     
+    void applyForce(ofVec2f force){
+        _facc+=force;
+    }
+    
+    ofVec2f align(vector<DetectBlob>& boids){
         
-            ofPushMatrix();
-            ofTranslate(_pos.x,_pos.y);
-            
-            ofPushStyle();
+        float neighbor_dist=_blob._rad*4;
+        ofVec2f sum(0,0);
         
-        if(!_dead){
-            
-            if(_ghost) ofSetColor(GColor[_gcolor],255);
-            else ofSetColor(255,255,0,255);
-            ofFill();
-            ofDrawCircle(0,0,Rad);
-            
-        }else{
-            
-            float a_=255.0*(1.0-_timer_dead.val());
-            
-            if(_ghost) ofSetColor(GColor[_gcolor],a_);
-            else ofSetColor(255,255,0,a_);
-            ofFill();
-            ofDrawCircle(0,0,Rad*(1.0+2*_timer_dead.val()));
-            
+        for(auto &b:boids){
+            float d=_floc.distance(b._floc);
+            if(d>0 && d<neighbor_dist){
+                sum+=b._fvel;
+            }
         }
+        sum.normalize();
+        sum*=MaxSpeed;
         
-            ofPopStyle();
-            ofPopMatrix();
+        ofVec2f steer=sum-_fvel;
+        steer.limit(MaxForce);
+        return steer;
+    }
+    ofVec2f cohesion(vector<DetectBlob>& boids){
         
-    
-	}
-	void setPos(ofVec2f p_){
-		_path.push_back(p_);
-		if(_path.size()>MPathRecord) _path.erase(_path.begin());
-
-		_pos=p_;
-	}
-	bool alreadyPass(float x_,float y_){
-		return std::find(_path.begin(),_path.end(),ofVec2f(x_,y_))!=_path.end();
-	}
-	ofVec2f getPos(){
-		return _pos;
-	}
-	void restart(ofVec2f p_,int d_){
-		_path.clear();
-		_pos=p_;
-		_dir=d_;
-        _dead=false;
-        _timer_dead.reset();
-	}
-    void goDie(){
-        if(!_dead){
-            _dead=true;
-            _timer_dead.restart();
+        float neighbor_dist=_blob._rad*3;
+        ofVec2f sum;
+        int count=0;
+        for(auto &b:boids){
+            float d=_floc.distance(b._floc);
+            if(d>0 && d<neighbor_dist){
+                sum+=b._floc;
+                count++;
+            }
         }
+        if(count>0){
+            sum/=count;
+            sum.normalize();
+            sum*=MaxSpeed;
+            ofVec2f steer=sum-_fvel;
+            steer.limit(MaxForce);
+            return steer;
+        }
+        return ofVec2f(0,0);
+        
+        
     }
-    bool isDead(){
-        return _dead && _timer_dead.val()>=1;
+    ofVec2f seperate(vector<DetectBlob>& boids){
+        float desired_separataion=_blob._rad*2;
+        ofVec2f sum(0,0);
+        int count=0;
+        for(auto &b:boids){
+            float d=_floc.distance(b._floc);
+            if(d>0 && d<desired_separataion){
+                ofVec2f diff=_floc-b._floc;
+                diff.normalize();
+                diff/=d;
+                sum+=diff;
+                count++;
+            }
+        }
+        if(count>0){
+            sum/=count;
+            sum.normalize();
+            sum*=MaxSpeed;
+            ofVec2f steer=sum-_fvel;
+            steer.limit(MaxForce);
+            return steer;
+        }
+        return ofVec2f(0,0);
     }
-	
 };
 
 
