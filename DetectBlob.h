@@ -94,16 +94,23 @@ public:
 	}
 	void drawTriggered(float p_,bool fill_){
 		ofPushStyle();
+        
+        ofPushMatrix();
+        ofTranslate(_blob._center.x,_blob._center.y);
+        
+        if(fill_) ofScale(p_,p_);
+        
+		float d_=1.0*_danim.val();
 		
-		float d_=0.0*_danim.val();
-		ofPushMatrix();
+        ofPushMatrix();
 		ofTranslate(-d_,-d_);
 			ofSetColor(DetectBlob::BColor[1],255.0*p_);
 			if(!fill_) ofNoFill();	
 			else ofFill();
 			drawShape(fill_?1.0:p_);
 		ofPopMatrix();
-		ofPushMatrix();
+		
+        ofPushMatrix();
 		ofTranslate(d_,d_);
 			ofSetColor(DetectBlob::BColor[0],255.0*p_);
 			if(!fill_) ofNoFill();				
@@ -111,13 +118,15 @@ public:
 
 			drawShape(fill_?1.0:p_);
 		ofPopMatrix();
+        
         ofPushMatrix();
         ofSetColor(255,180);
-        if(!fill_) ofNoFill();
-        else ofFill();
-        drawShape(fill_?1.0:p_);
+            if(!fill_) ofNoFill();
+            else ofFill();
+            drawShape(fill_?1.0:p_);
         ofPopMatrix();
         
+        ofPopMatrix();
 		
 		ofPopStyle();
 	}
@@ -126,7 +135,11 @@ public:
         ofPushStyle();
         float d_=2.0*_danim.val();
         
+        
         if(_trigger){
+            ofPushMatrix();
+            ofTranslate(_blob._center.x,_blob._center.y);
+            
             ofPushMatrix();
             ofTranslate(-d_,-d_);
             
@@ -142,15 +155,14 @@ public:
                 drawShape(1.0);
             ofPopMatrix();
             
+            ofPopMatrix();
         }
         
         ofPushMatrix();
-        ofTranslate(_floc.x-_blob._center.x,_floc.y-_blob._center.y);
+        ofTranslate(_floc.x,_floc.y);
         
-        ofTranslate(_blob._contours[0].x,_blob._contours[0].y);
         ofRotate(ofRadToDeg(atan2(_floc.y,_floc.x)));
-        ofTranslate(-_blob._contours[0].x,-_blob._contours[0].y);
-
+        
             ofPushMatrix();
             ofTranslate(0,0);
             if(_trigger) ofSetColor(255,120);
@@ -160,6 +172,7 @@ public:
             ofPopMatrix();
         
         ofPopMatrix();
+        
         
         ofPopStyle();
     }
@@ -214,7 +227,7 @@ public:
         ofVec2f ali=align(boids);
         ofVec2f coh=cohesion(boids);
         
-        sep*=1.5;
+        sep*=1.2;
         ali*=1.0;
         coh*=1.0;
         

@@ -30,8 +30,6 @@
 //#define USE_VIDEO
 //#define USE_REF
 
-//#define SIZE_LOW 20
-//#define SIZE_HIGH .1
 
 #define MAXBLOB 20
 
@@ -41,12 +39,6 @@
 
 #define MAXPACMAN 50
 
-//struct BlobComparator{
-//	bool operator()(const ofxCvBlob& a_,const ofxCvBlob& b_){ 
-//		return  a_.area<b_.area;
-//	}
-//};
-
 
 
 
@@ -54,6 +46,9 @@ class ofApp : public ofBaseApp{
 	private:
 		float _last_millis,_dmillis;
 	public:
+    
+        static int* TrackCount;
+    
 		void setup();
 		void update();
 		void draw();
@@ -98,7 +93,7 @@ class ofApp : public ofBaseApp{
         MODE _mode;
 		void setMode(MODE set_);
 		
-		enum DEFFECT {SCAN,EDGE_WALK,BLOB_SELECT,BIRD};
+		enum DEFFECT {SCAN,EDGE_WALK,BLOB_SELECT,BIRD,BUG};
 		DEFFECT _effect,_next_effect;
 		void setEffect(DEFFECT set_);
 		
@@ -110,8 +105,7 @@ class ofApp : public ofBaseApp{
     
         void drawAnalysis(float x_,float y_,float wid_,float hei_);
 		
-	    void drawContours(float p_=1);
-
+	   
 		vector<DetectBlob> _collect_blob;
 
 
@@ -177,7 +171,6 @@ class ofApp : public ofBaseApp{
     
     
 	   //blob
-	   //int _mselect_blob;
 	   FrameTimer _anim_select;
 	   float selectBlob();
 	   
@@ -190,12 +183,9 @@ class ofApp : public ofBaseApp{
        
 
 	   //sound
-	   void triggerSound(bool short_);
+       int _track;
+       void triggerSound();
        void remoteVolume(int track_,float vol_);
-       void triggerTurn();
-       void triggerCollide(bool ghost_);
-       void triggerDead();
-       void triggerScan(int num_,float area_);
 
 	   //spout
 	   ofImage _sender_image;

@@ -23,6 +23,9 @@ ofVec2f DetectBlob::Center=ofVec2f(PHEIGHT/2,PHEIGHT/2);
 float DetectBlob::MaxSpeed=8;
 float DetectBlob::MaxForce=.2;
 
+int* ofApp::TrackCount=new int[5]{10,5,6,13,5};
+
+
 int main( ){
 	ofSetupOpenGL(1280,720,OF_WINDOW);			// <-------- setup the GL context
 

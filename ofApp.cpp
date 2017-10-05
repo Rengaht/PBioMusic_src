@@ -16,7 +16,7 @@ void ofApp::setup(){
     _video.setVolume(0);
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #elif defined(USE_REF)
-	_img_ref.load("ref.jpg");
+	_img_ref.load("ref2.jpg");
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #else
     _camera.listDevices();
@@ -76,7 +76,6 @@ void ofApp::setup(){
 
     
     _serial.listDevices();
-    //_serial.setup(_param->_serial_port,9600);
     _serial.setup(0,9600);
 }
                                
@@ -158,7 +157,7 @@ void ofApp::update(){
                             float char_=selectBlob();
                             _anim_select.setDue(char_*_param->_select_vel);
                             //remoteVolume(0, char_);
-                            triggerSound(false);
+                            triggerSound();
                         }else{
                             setEffect(DEFFECT::BLOB_SELECT);
                         }
@@ -172,12 +171,14 @@ void ofApp::update(){
                         if(DetectBlob::Center.distance(ofVec2f(b._floc.x,b._floc.y))>PHEIGHT/2*.9){
                             if(!b.getTrigger()){
                                 b.setTrigger(true);
-                                triggerSound(true);
+                                triggerSound();
                             }
                         }else{
                             b.setTrigger(false);
                         }
                     }
+                    break;
+                case BUG:
                     break;
 			}
 			break;
@@ -410,10 +411,8 @@ void ofApp::draw(){
     
     ofPopMatrix();
     
-    ofPushMatrix();
-    //ofSetColor(255,20);
     _img_mask.draw(0,0);
-    ofPopMatrix();
+    
     
     //send spout
 #ifdef _WIN64
@@ -473,8 +472,8 @@ void ofApp::cvProcess(cv::Mat& grab_){
 	/*auto clahe=cv::createCLAHE();
 	clahe->apply(_mat_gray,_mat_normalize);*/
 
-	//cv::threshold(_mat_gray,_mat_thres,_param->_bi_thres,255,THRESH_BINARY_INV);
-    cv::adaptiveThreshold(_mat_normalize,_mat_thres,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,33,0);
+    //if(_effect==DEFFECT::)cv::threshold(_mat_gray,_mat_thres,80,255,cv::THRESH_BINARY_INV);
+    cv::adaptiveThreshold(_mat_normalize,_mat_thres,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,33,5);
 
     cv::Mat struct_=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(7,7));
     cv::morphologyEx(_mat_thres,_mat_morph,cv::MORPH_CLOSE,struct_);
@@ -625,8 +624,10 @@ void ofApp::updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hi
     
     // approx contour
     int clen=contour_.size();
-    vector<Blob> blob_;
     float frame_=PHEIGHT*PHEIGHT;
+    
+    
+    _collect_blob.clear();
     
     for(int i=0;i<clen;++i){
         Blob b_=contourApproxBlob(contour_[i]);
@@ -634,18 +635,15 @@ void ofApp::updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hi
         if(d_>PHEIGHT/2) continue;
         
         float area_=cv::contourArea(contour_[i]);
-        if(area_>_param->_blob_small && area_<_param->_blob_large*frame_)
-            blob_.push_back(contourApproxBlob(contour_[i]));
+        if(area_>_param->_blob_small && area_<_param->_blob_large*frame_){
+            
+            DetectBlob db_;
+            db_._id=_collect_blob.size();
+            db_._blob=b_;
+            _collect_blob.push_back(db_);
+            
+        }
         
-    }
-    
-    _collect_blob.clear();
-    int len=blob_.size();
-    for(int i=0;i<len;++i){
-        DetectBlob b_;
-        b_._id=_collect_blob.size();
-        b_._blob=blob_[i];
-        _collect_blob.push_back(b_);
     }
     
     // track exist
@@ -682,55 +680,10 @@ void ofApp::updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hi
 
 }
 
-bool ofApp::isScanned(DetectBlob detect_){
-	//ofLog()<<rect_.getMinX()<<"  "<<rect_.getMaxX();
-//	ofRectangle rect_=blob_.boundingRect;
-//	bool scan_=rect_.getMinX()<_scan_pos && rect_.getMaxX()>_scan_pos;
-//	
-//	// check if triggered
-//	if(scan_){
-//		bool new_=true;
-//		for(ofxCvBlob &b:_last_trigger){
-//			if(isSimilar(blob_,b)){
-//				new_=false;
-//				b=blob_;
-//				break;
-//			}
-//		}
-//		if(new_){
-//			_last_trigger.push_back(blob_);
-//			
-//		}
-//	}
-//	return scan_;
-    
-    float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*PHEIGHT:_anim_scan.val()*min(PHEIGHT,PHEIGHT)/2;
-    float dist=0;
-    float ang=0;
-    
-    switch(_scan_dir){
-        case VERT:
-            if(spos_>=detect_._blob._bounding.x && spos_<detect_._blob._bounding.x+detect_._blob._bounding.width) return true;
-            break;
-        case RADIAL:
-            dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PHEIGHT/2,PHEIGHT/2);
-           // ang=atan2(blob_.centroid.y-PHEIGHT/2,blob_.centroid.x-PWIDTH/2)+HALF_PI;
-			float brad_=max(detect_._blob._bounding.width,detect_._blob._bounding.height)/2;
-			if(dist-brad_<spos_ && dist+brad_>spos_) return true;
-            break;
-                
-    }
-    return false;
-    
-}
 
 
-void ofApp::drawContours(float p_){
 
-	//for(auto& b:_collect_blob) b.draw(p_);
-	
-}
-
+#pragma mark OF_UI
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
@@ -739,29 +692,40 @@ void ofApp::keyPressed(int key){
     string message_;
     
 	switch (key){
-		
-		case '1':
+		case '0':
             setMode(MODE::RUN);
 			break;
-		case '2':
+		case '9':
 			setMode(MODE::DETECT);
 			break;
-		case 'S':
-			_next_effect=DEFFECT::SCAN;
-			setMode(MODE::DETECT);
-			break;
-		case 'B':
-			_next_effect=DEFFECT::BLOB_SELECT;			
-			setMode(MODE::DETECT);
-			break;
-		case 'E':
-			_next_effect=DEFFECT::EDGE_WALK;
-			setMode(MODE::DETECT);
-			break;
-        case 'F':
-            _next_effect=DEFFECT::BIRD;
+            
+		case '1':
+			_next_effect=DEFFECT::BIRD;
+            _track=0;
             setMode(MODE::DETECT);
             break;
+		case '2':
+			_next_effect=DEFFECT::BLOB_SELECT;			
+            _track=1;
+            setMode(MODE::DETECT);
+			break;
+		case '3':
+			_next_effect=DEFFECT::SCAN;
+            _track=2;
+			setMode(MODE::DETECT);
+			break;
+        case '4':
+            _next_effect=DEFFECT::BIRD;
+            _track=3;
+            setMode(MODE::DETECT);
+            break;
+        case '5':
+            _next_effect=DEFFECT::SCAN;
+            _track=4;
+            setMode(MODE::DETECT);
+            break;
+            
+            
         case 'a':
 			switch(_effect){
 				case SCAN:
@@ -775,7 +739,7 @@ void ofApp::keyPressed(int key){
 					break;
 			}
 			break;
-		case 'q':
+		case 'z':
 			switch(_effect){
 				case EDGE_WALK:
 					//addPacMan(true);
@@ -783,36 +747,36 @@ void ofApp::keyPressed(int key){
 					break;
 			}
 			break;
+        /* utility */
 		case 'd':
 			_debug=!_debug;
 			break;
-		case 'c':
-			_collect_blob.clear();
-		
 		case 's':
 			_param->saveParameterFile();
-			break;
-		case 'k':
-            sendOSC("/live/tempo",vector<float>());
-			//triggerSound(true);
-			break;
-		case 'l':
-			triggerSound(false);
 			break;
         case 'f':
             _do_fft=!_do_fft;
             break;
-        case '9':
+            
+        /* test */
+        case 'k':
+            sendOSC("/live/tempo",vector<float>());
+			break;
+		case 'l':
+			triggerSound();
+			break;
+            
+        /* motor */
+        case 'q':
             message_="motor_speedup#";
             _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
             break;
-        case '0':
+        case 'w':
             message_="motor_slowdown#";
             _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
             break;
 	}
 }
-#pragma region OF_UI
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
 
@@ -862,8 +826,9 @@ void ofApp::gotMessage(ofMessage msg){
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
 }
-#pragma endregion
 
+
+#pragma mark MODE_AND_EFFECT
 
 void ofApp::setMode(MODE set_){
 	switch(set_){
@@ -880,89 +845,6 @@ void ofApp::setMode(MODE set_){
 	_mode=set_;
 }
 
-void ofApp::sendOSC(string address_,vector<float> param_){
-
-	cout<<"send osc: "<<address_<<" ";
-	ofxOscMessage message_;
-	message_.setAddress(address_);
-	for(auto a:param_){
-		message_.addIntArg(a);
-		cout<<a<<" ";
-	}
-	cout<<endl;
-	_osc_sender.sendMessage(message_);
-}
-
-
-bool ofApp::isSimilar(Blob b1_,Blob b2_){
-	if(abs(b1_._bounding.area()-b2_._bounding.area())<200
-	   && abs(b1_._center.y-b2_._center.y)<20) return true;
-	return false;
-}
-
-void ofApp::checkScan(SCANDIR dir_){
-    float epos_=(_scan_dir==SCANDIR::VERT)?PHEIGHT/(float)_param->_mscan_region
-				:TWO_PI/(float)_param->_mscan_region;
-    //bool touched_[MSCANREGION];
-	for(int i=0;i<_scan_touched.size();++i) _scan_touched[i]=false;
-
-    float ang=0;
-    
-    int mtrigger=0;
-    int trigger_area=0;
-    
-	for(auto& b:_collect_blob){
-		
-        switch(_scan_dir){
-            case VERT:
-                if(isScanned(b)){
-//					int pos=int(floor(b._blob._center.y/epos_));
-//					pos=ofClamp(pos,0,_scan_touched.size()-1);
-//					_scan_touched[pos]=true;
-                    
-                    if(!b.getTrigger()){
-                        b.setTrigger(true);
-                        mtrigger++;
-                        triggerSound(true);
-                        
-//                    if(ofRandom(20)<1)
-//                        trigger_area+=b._blob._bounding.area();
-                    }
-				}//else b.setTrigger(false);
-                break;
-            case RADIAL:
-                ang=atan2(b._blob._center.y-PHEIGHT/2,b._blob._center.x-PWIDTH/2)+PI;				
-                if(isScanned(b)){
-//					int region_=(int)(floor(ang/TWO_PI*_param->_mscan_region));
-//					region_=ofClamp(region_,0,_scan_touched.size()-1);
-//					_scan_touched[region_]=true;
-                    
-                    if(!b.getTrigger()){
-                        b.setTrigger(true);
-                        mtrigger++;
-                        triggerSound(true);
-                        
-                    }
-//                    if(ofRandom(20)<1)
-//                        trigger_area+=b._blob._bounding.area();
-//                    
-                    
-				}//else b.setTrigger(false);
-                break;
-            
-        }
-    }
-    _report2<<"mtrigger="<<mtrigger<<endl
-            <<"cover area="<<trigger_area<<endl;
-    
-    
-    //if(ofGetFrameNum()%60==0)
-        triggerScan(mtrigger,trigger_area);
-    
-    
-    
-    
-}
 
 void ofApp::setEffect(DEFFECT set_){
 
@@ -1034,6 +916,7 @@ void ofApp::setEffect(DEFFECT set_){
 	_effect=set_;
 }
 
+#pragma mark CV_UTIL
 
 Blob ofApp::contourApproxBlob(vector<cv::Point>& contour_){
 	Blob b;
@@ -1045,7 +928,13 @@ Blob ofApp::contourApproxBlob(vector<cv::Point>& contour_){
     cv::approxPolyDP(cv::Mat(contour_),poly_,2,false);
     bounding_=cv::boundingRect(cv::Mat(poly_));
 	minEnclosingCircle(poly_,center_,rad_);
-
+    ofLog()<<center_.x<<", "<<center_.y;
+    
+    for(auto& p:contour_){
+        p.x-=center_.x;
+        p.y-=center_.y;
+    }
+    
 	b._contours=contour_;
 	b._center=center_;
 	b._bounding=bounding_;
@@ -1092,6 +981,112 @@ void ofApp::stretchContrast(cv::Mat& src_, cv::Mat& dst_,int c1_,int c2_){
 }
 
 
+
+bool ofApp::isSimilar(Blob b1_,Blob b2_){
+    if(abs(b1_._bounding.area()-b2_._bounding.area())<200
+       && abs(b1_._center.y-b2_._center.y)<20) return true;
+    return false;
+}
+
+#pragma mark EFFECT_SCAN
+bool ofApp::isScanned(DetectBlob detect_){
+    //ofLog()<<rect_.getMinX()<<"  "<<rect_.getMaxX();
+    //	ofRectangle rect_=blob_.boundingRect;
+    //	bool scan_=rect_.getMinX()<_scan_pos && rect_.getMaxX()>_scan_pos;
+    //
+    //	// check if triggered
+    //	if(scan_){
+    //		bool new_=true;
+    //		for(ofxCvBlob &b:_last_trigger){
+    //			if(isSimilar(blob_,b)){
+    //				new_=false;
+    //				b=blob_;
+    //				break;
+    //			}
+    //		}
+    //		if(new_){
+    //			_last_trigger.push_back(blob_);
+    //
+    //		}
+    //	}
+    //	return scan_;
+    
+    float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*PHEIGHT:_anim_scan.val()*PHEIGHT/2;
+    float dist=0;
+    float ang=0;
+    
+    switch(_scan_dir){
+        case VERT:
+            if(spos_>=detect_._blob._bounding.x && spos_<detect_._blob._bounding.x+detect_._blob._bounding.width) return true;
+            break;
+        case RADIAL:
+            dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PHEIGHT/2,PHEIGHT/2);
+            // ang=atan2(blob_.centroid.y-PHEIGHT/2,blob_.centroid.x-PWIDTH/2)+HALF_PI;
+            float brad_=detect_._blob._rad;//max(detect_._blob._bounding.width,detect_._blob._bounding.height)/2;
+            if(dist-brad_<spos_ && dist+brad_>spos_) return true;
+            break;
+            
+    }
+    return false;
+    
+}
+
+void ofApp::checkScan(SCANDIR dir_){
+//    float epos_=(_scan_dir==SCANDIR::VERT)?PHEIGHT/(float)_param->_mscan_region
+//				:TWO_PI/(float)_param->_mscan_region;
+    //bool touched_[MSCANREGION];
+//    for(int i=0;i<_scan_touched.size();++i) _scan_touched[i]=false;
+    
+    float ang=0;
+    
+    int mtrigger=0;
+    int trigger_area=0;
+    
+    for(auto& b:_collect_blob){
+        
+        switch(_scan_dir){
+            case VERT:
+                if(isScanned(b)){
+                    //					int pos=int(floor(b._blob._center.y/epos_));
+                    //					pos=ofClamp(pos,0,_scan_touched.size()-1);
+                    //					_scan_touched[pos]=true;
+                    
+                    if(!b.getTrigger()){
+                        b.setTrigger(true);
+                        mtrigger++;
+                        triggerSound();
+                        
+                    }
+                }//else b.setTrigger(false);
+                break;
+            case RADIAL:
+                if(isScanned(b)){
+                    //					int region_=(int)(floor(ang/TWO_PI*_param->_mscan_region));
+                    //					region_=ofClamp(region_,0,_scan_touched.size()-1);
+                    //					_scan_touched[region_]=true;
+                    
+                    if(!b.getTrigger()){
+                        b.setTrigger(true);
+                        mtrigger++;
+                        triggerSound();
+                        
+                    }
+                    
+                }//else b.setTrigger(false);
+                break;
+                
+        }
+    }
+    _report2<<"mtrigger="<<mtrigger<<endl
+    <<"cover area="<<trigger_area<<endl;
+    
+    
+    
+    
+    
+}
+#pragma mark EFFECT_PACMAN
+
 void ofApp::updatePacMan(PacMan& p_){
     
     
@@ -1131,7 +1126,7 @@ void ofApp::updatePacMan(PacMan& p_){
 	if(next_==-100){	
 		//p_.restart(findWhiteStart(p_._ghost),3);
         p_.goDie();
-        triggerDead();
+        triggerSound();
         
 	}else{
 		p_.setPos(pos_+(p_._ghost?PacMan::GDirection[next_]:PacMan::Direction[next_])*PACMANVEL);
@@ -1217,13 +1212,16 @@ void ofApp::checkPacManCollide(){
                 _pacman[i].goDie();
                 _pacman[j].goDie();
                 
-                if(_pacman[i]._ghost || _pacman[j]._ghost) triggerCollide(true);
-                else triggerCollide(false);
+                triggerSound();
+                
+//                if(_pacman[i]._ghost || _pacman[j]._ghost) triggerSound(3);
+//                else triggerSound(3);
             }
             
         }
     }
 }
+#pragma mark EFFECT_BLOB
 
 
 float ofApp::selectBlob(){
@@ -1252,22 +1250,11 @@ float ofApp::selectBlob(){
 }
 
 #pragma mark LIVE_TRIGGER
-
-void ofApp::triggerSound(bool short_){
+void ofApp::triggerSound(){
 	vector<float> p_;
-	if(short_){
-		p_.push_back(0);
-		p_.push_back(floor(ofRandom(7)));
+		p_.push_back(_track);
+		p_.push_back(floor(ofRandom(TrackCount[_track])));
 		sendOSC("/live/play/clip",p_);
-	}else{
-		p_.push_back(1);
-		p_.push_back(floor(ofRandom(13)));
-		sendOSC("/live/play/clip",p_);
-	}
-//    p_.push_back(0);
-//    p_.push_back(floor(ofRandom(6)));
-//    sendOSC("/live/play/clip",p_);
-
 }
 
 void ofApp::remoteVolume(int track_,float vol_){
@@ -1279,23 +1266,23 @@ void ofApp::remoteVolume(int track_,float vol_){
     
 }
 
-void ofApp::triggerTurn(){
-    triggerSound(true);
-}
-void ofApp::triggerCollide(bool ghost_){
-    triggerSound(false);
-}
-void ofApp::triggerDead(){
-    triggerSound(false);
-}
-
-void ofApp::triggerScan(int num_,float area_){
-   // remoteVolume(2,area_/(PHEIGHT*PHEIGHT*_param->_blob_large));
-        if(abs(sin(area_))>.5) triggerSound(true);
-    
-}
 
 #pragma mark COMMUNICATION
+
+void ofApp::sendOSC(string address_,vector<float> param_){
+    
+    cout<<"send osc: "<<address_<<" ";
+    ofxOscMessage message_;
+    message_.setAddress(address_);
+    for(auto a:param_){
+        message_.addIntArg(a);
+        cout<<a<<" ";
+    }
+    cout<<endl;
+    _osc_sender.sendMessage(message_);
+}
+
+
 void ofApp::receiveOSC(){
 	while(_osc_receiver.hasWaitingMessages()){
 		// get the next message
@@ -1376,7 +1363,7 @@ void ofApp::updateSerial(){
                 _scan_dir=SCANDIR::RADIAL;
             }else if(val[0]=="speed_a"){
                 float v=ofToFloat(val[1]);
-                _anim_scan.setDue(_param->_scan_vel*(1.0+v/255.0*4.0));
+                _anim_scan.setDue(_param->_scan_vel*(1.0+v/255.0*20.0));
             }
         }
         
