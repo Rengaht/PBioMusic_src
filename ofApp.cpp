@@ -35,7 +35,7 @@ void ofApp::setup(){
     _mat_thres=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC1);
     _mat_edge=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC1);
     _mat_morph=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC1);
-    
+    _mat_pacman=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC3);
 
     _fbo_pacman.allocate(PHEIGHT,PHEIGHT,GL_RGBA);
     
@@ -44,7 +44,7 @@ void ofApp::setup(){
 	_osc_receiver.setup(9001);
     
 
-	_anim_detect=FrameTimer(200);
+	_anim_detect=FrameTimer(250);
 
 	setMode(MODE::RUN);
 
@@ -77,6 +77,22 @@ void ofApp::setup(){
     
     _serial.listDevices();
     _serial.setup(0,9600);
+    
+    
+    _light.setPosition(1000, 1000, 2000);
+    
+    _postprocess.init(ofGetWidth(), ofGetHeight());
+    _postprocess.createPass<FxaaPass>()->setEnabled(true);
+    _postprocess.createPass<BloomPass>()->setEnabled(false);
+    _postprocess.createPass<DofPass>()->setEnabled(false);
+    _postprocess.createPass<KaleidoscopePass>()->setEnabled(false);
+    _postprocess.createPass<NoiseWarpPass>()->setEnabled(false);
+    _postprocess.createPass<PixelatePass>()->setEnabled(false);
+    _postprocess.createPass<EdgePass>()->setEnabled(false);
+    _postprocess.createPass<VerticalTiltShifPass>()->setEnabled(false);
+    _postprocess.createPass<GodRaysPass>()->setEnabled(false);
+    
+    _ipost=0;
 }
                                
 //--------------------------------------------------------------
@@ -99,7 +115,8 @@ void ofApp::update(){
     receiveOSC();
     updateSerial();
 
-    
+    int len;
+    bool alldead_;
 
 	bool new_=false;
 	 new_=updateSource();
@@ -118,7 +135,11 @@ void ofApp::update(){
 				if(_idetect_view>5){
 					setMode(MODE::EFFECT);
 					setEffect(_next_effect);
-				}else _anim_detect.restart();				
+                }else{
+                    if(_idetect_view>4) _anim_detect.setDue(500);
+                    else _anim_detect.setDue(250);
+                    _anim_detect.restart();
+                }
 			}
 			break;
 		case EFFECT:
@@ -134,36 +155,64 @@ void ofApp::update(){
 					break;
 				case EDGE_WALK:
 				
-                    for(auto& p:_pacman){
-                        p.update(_dmillis);
-                        updatePacMan(p);
-                        if(p.isDead()) p.restart(findWhiteStart(p._ghost),3);
+                    for(auto it=_pacman.begin();it!=_pacman.end();){
+                        (*it).update(_dmillis);
+                        updatePacMan(*it);
+                        
+                        if((*it).isDead()){
+                            _pacman.erase(it);
+                            addPacMan(ofRandom(2)<1);
+                        }else{
+                            it++;
+                        }
                     }
                     checkPacManCollide();
-                    
+//                    for(auto& p:_pacman){
+//                        cv::Rect comp(0,0,10,10);
+//                        int area=cv::floodFill(_mat_pacman,cv::Point(p.getPos().x,p.getPos().y),cv::Scalar(0),&comp,cv::Scalar(20, 20, 20),cv::Scalar(20, 20, 20));
+//                        ofLog()<<"flood area: "<<area;
+//                        //floodFill(_mat_morph,cv::Point(p.getPos().x,p.getPos().y),cv::Scalar(255,0,0),&comp,cv::Scalar(20, 20, 20),cv::Scalar(20, 20, 20));
+//                    }
                     _fbo_pacman.begin();
-                        ofPushStyle();
-                        ofSetColor(0,10);
-                        ofFill();
-                            ofDrawRectangle(0, 0, PHEIGHT, PHEIGHT);
-                        ofPopStyle();
-                        for(auto& p:_pacman) p.draw();
+//                        ofPushStyle();
+//                        ofSetColor(0,1);
+//                        ofFill();
+//                            ofDrawRectangle(0, 0, PHEIGHT, PHEIGHT);
+//                        ofPopStyle();
+                        for(auto& p:_pacman){
+                            p.draw();
+                        }
                     _fbo_pacman.end();
+                    _img_pacman=matToImage(_mat_pacman);
+
 					break;
 				case BLOB_SELECT:
-					_anim_select.update(_dmillis);
-					if(_anim_select.val()>=1){						
-                        if(_not_selected.size()>0){
-                            float char_=selectBlob();
-                            _anim_select.setDue(char_*_param->_select_vel);
-                            //remoteVolume(0, char_);
-                            triggerSound();
-                        }else{
-                            setEffect(DEFFECT::BLOB_SELECT);
-                        }
-						_anim_select.restart();
-					}
-					for(auto& b:_selected) b.update(_dmillis);
+//					_anim_select.update(_dmillis);
+//					if(_anim_select.val()>=1){						
+//                        if(_not_selected.size()>mSelectBlob){
+//                            float char_=selectBlob();
+//                            _anim_select.setDue(char_*_param->_select_vel);
+//                            //remoteVolume(0, char_);
+//                            triggerSound();
+//                        }else{
+//                            setEffect(DEFFECT::BLOB_SELECT);
+//                        }
+//						_anim_select.restart();
+//					}
+                    alldead_=true;
+                    for(auto& seq:_selected){
+                        seq.update(_dmillis);
+                        updateSelectSeq(seq);
+                        if(!seq._dead) alldead_=false;
+                    }
+                    
+                    
+                    if(_selected.size()<3 && ofRandom(30)<1) addSelectKey();
+                    
+                    len=_not_selected.size();
+                    if(len<1){
+                        if(alldead_) setEffect(DEFFECT::BLOB_SELECT);
+                    }
 					break;
                 case BIRD:
                     for(auto& b:_bird){
@@ -179,6 +228,8 @@ void ofApp::update(){
                     }
                     break;
                 case BUG:
+                    cvProcess(_mat_contrast);
+                    for(auto& box:_bug_box) checkBugTouch(box);
                     break;
 			}
 			break;
@@ -214,24 +265,32 @@ void ofApp::draw(){
 		return;
 	}
 	
-	
+    //ofEnableDepthTest();
+    //_light.enable();
+    //            _postprocess.begin();
+
+    
+    
+    
     float ratio_=(float)VHEIGHT/PHEIGHT;
 	
 	float rw_=_anim_detect.val()*PHEIGHT;
 	
-	int len_;
-
 	ofPushMatrix();
     ofTranslate(ofGetWidth()/2-VHEIGHT/2,ofGetHeight()/2-VHEIGHT/2);
     
     ofScale(ratio_,ratio_);
     
     
+    
 	switch(_mode){
 		case RUN:
 			_report1<<"mode:run"<<endl;
             _report2<<"compute histogram"<<endl;
+  
             _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+            
+            
             break;
 		case DETECT:
 			_report1<<"mode:detect"<<endl
@@ -277,7 +336,7 @@ void ofApp::draw(){
 					ofPopStyle();
 
 					ofPushMatrix();
-						for(auto& b:_collect_blob) b.draw(_anim_detect.val(),false,_font);
+						for(auto& b:_collect_blob) b.drawDetect(.5*_anim_detect.val(),_font);
 					ofPopMatrix();
 					break;
 				case 5:
@@ -290,7 +349,7 @@ void ofApp::draw(){
                     ofPushStyle();
 					ofSetColor(255,255.0*_anim_detect.val());
 
-                    if(_next_effect>=DEFFECT::EDGE_WALK){
+                    if(_next_effect==DEFFECT::EDGE_WALK || _next_effect==DEFFECT::BIRD){
                         _img_edge.draw(0,0,PHEIGHT,PHEIGHT);
                     }else{
 						_img_resize.draw(0,0,PHEIGHT,PHEIGHT);
@@ -298,7 +357,7 @@ void ofApp::draw(){
 					ofPopStyle();
 
 					ofPushMatrix();
-						for(auto& b:_collect_blob) b.draw(1.0,false,_font);
+						for(auto& b:_collect_blob) b.drawDetect(.5+.5*_anim_detect.val(),_font);
 					ofPopMatrix();
 
 					break;
@@ -315,7 +374,7 @@ void ofApp::draw(){
 				_report1<<"effect:scan"<<endl;
                 _report1<<"mtrigger="<<endl;
                     for(auto& b:_collect_blob){
-                        b.draw(1.0,true,_font);
+                        b.drawScan(1.0,_font);
                     }
 				ofPushStyle();
 				ofSetColor(255,0,0,255);
@@ -356,10 +415,10 @@ void ofApp::draw(){
 				ofPopStyle();
 				break;
 			case EDGE_WALK:
-				_img_morph.draw(0,0,PHEIGHT,PHEIGHT);
+				_img_pacman.draw(0,0,PHEIGHT,PHEIGHT);
 				//for(auto& b:_collect_blob) b.draw(1.0,false);
                 _fbo_pacman.draw(0,0);
-                    
+
 				_report1<<"effect:pacman"<<endl;
                 _report1<<"mpac="<<_pacman.size()<<endl;
 				
@@ -367,20 +426,20 @@ void ofApp::draw(){
                 break;
 			case BLOB_SELECT:
 				_img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
-				len_=_selected.size();
-				if(len_>1){
-					for(int i=0;i<len_-1;++i){
-						_selected[i].draw(1.0,true,_font);
-					}
-					_selected[len_-1].draw(_anim_select.val(),true,_font);
-				}
+                    for(auto& seq:_selected){
+                        seq.draw(_font);
+                    }
 
 				_report1<<"effect:blob"<<endl;
-                _report1<<"selected="<<_selected[len_-1]._blob._bounding.area()<<endl;
-				break;
+                break;
             case BIRD:
                     _img_edge.draw(0,0,PHEIGHT,PHEIGHT);
-                    for(auto& b:_bird) b.fdraw();
+                    for(auto& b:_bird) b.drawBird();
+                    break;
+            case BUG:
+                    _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+                    for(auto& box:_bug_box) box.draw();
+                    for(auto& b:_collect_blob) b.drawBug(_font);
                     break;
 			default:
 				break;
@@ -410,6 +469,9 @@ void ofApp::draw(){
     
     
     ofPopMatrix();
+    
+//            _postprocess.end();
+
     
     _img_mask.draw(0,0);
     
@@ -461,7 +523,8 @@ bool ofApp::updateSource(){
 // for main opencv processing
 void ofApp::cvProcess(cv::Mat& grab_){
 
-
+    
+    
 	
 
 	cv::cvtColor(_mat_contrast,_mat_gray,CV_BGR2GRAY);
@@ -705,12 +768,12 @@ void ofApp::keyPressed(int key){
             setMode(MODE::DETECT);
             break;
 		case '2':
-			_next_effect=DEFFECT::BLOB_SELECT;			
+			_next_effect=DEFFECT::SCAN;
             _track=1;
             setMode(MODE::DETECT);
 			break;
 		case '3':
-			_next_effect=DEFFECT::SCAN;
+            _next_effect=DEFFECT::EDGE_WALK;
             _track=2;
 			setMode(MODE::DETECT);
 			break;
@@ -720,11 +783,16 @@ void ofApp::keyPressed(int key){
             setMode(MODE::DETECT);
             break;
         case '5':
-            _next_effect=DEFFECT::SCAN;
+            _next_effect=DEFFECT::BLOB_SELECT;
             _track=4;
             setMode(MODE::DETECT);
             break;
-            
+        
+        case '6':
+            _next_effect=DEFFECT::BUG;
+            _track=3;
+            setMode(MODE::DETECT);
+            break;
             
         case 'a':
 			switch(_effect){
@@ -735,7 +803,7 @@ void ofApp::keyPressed(int key){
 					addPacMan(ofRandom(2)<1);
 					break;
 				case BLOB_SELECT:
-					setEffect(DEFFECT::BLOB_SELECT);
+                    addSelectKey();
 					break;
 			}
 			break;
@@ -745,6 +813,9 @@ void ofApp::keyPressed(int key){
 					//addPacMan(true);
                     removePacMan();
 					break;
+                case BLOB_SELECT:
+                    setEffect(DEFFECT::BLOB_SELECT);
+                    break;
 			}
 			break;
         /* utility */
@@ -774,6 +845,13 @@ void ofApp::keyPressed(int key){
         case 'w':
             message_="motor_slowdown#";
             _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
+            
+        case 'p':
+            _postprocess[_ipost]->setEnabled(true);
+            _ipost=(_ipost+1)%9;
+            _postprocess[_ipost]->setEnabled(true);
+            ofLog()<<"now:"<<_ipost;
             break;
 	}
 }
@@ -833,6 +911,7 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 void ofApp::setMode(MODE set_){
 	switch(set_){
 		case DETECT:
+            _anim_detect.setDue(250);
 			_anim_detect.restart();
 			_idetect_view=0;
 			cvProcess(_mat_contrast);
@@ -852,6 +931,7 @@ void ofApp::setEffect(DEFFECT set_){
 	int len_=0;
 	switch(set_){
 		case EDGE_WALK:
+            _mat_morph.convertTo(_mat_pacman,CV_8UC3);
 			cv::findNonZero(_mat_morph,_mat_nonzero);
 			len_=_mat_nonzero.total();
 			_nonzero_point.clear();
@@ -865,16 +945,11 @@ void ofApp::setEffect(DEFFECT set_){
                 if(ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2)>=PHEIGHT/2*.8){
                     if(p_.y<PHEIGHT/2) _nonzero_start.push_back(p_);
                     else _nonzero_gstart.push_back(p_);
-//                    if(i<len_/10.0){
-//                        _nonzero_start.push_back(p_);
-//                    }else if(i>len_/10.0*9){
-//                        _nonzero_gstart.push_back(p_);
-//                    }
                 }
 			}
 			_pacman.clear();
 			for(int i=0;i<1;++i){
-				addPacMan(false);			
+				addPacMan(ofRandom(2)<1);
 				//addPacMan(true);
 			}
             _fbo_pacman.begin();
@@ -892,9 +967,12 @@ void ofApp::setEffect(DEFFECT set_){
 			_not_selected.clear();
 			for(auto b:_collect_blob) _not_selected.push_back(b);
 			
-			random_shuffle(_not_selected.begin(),_not_selected.end());
-			selectBlob();
-
+//			random_shuffle(_not_selected.begin(),_not_selected.end());
+//            DetectBlob::Center=ofVec2f(_not_selected[0]._blob._center.x,_not_selected[0]._blob._center.y);
+//            std::sort(_not_selected.begin(),_not_selected.end());
+            
+            addSelectKey();
+			
 			break;
         case BIRD:
             _bird.clear();
@@ -910,8 +988,16 @@ void ofApp::setEffect(DEFFECT set_){
                 b.finit(DetectBlob::BColor[(int)floor(ofRandom(2))]);
             }
             break;
-		default:
-			break;
+        case BUG:
+            _bug_box.clear();
+            _mbug_box=mBugBox;
+            float eang=(float)360/_mbug_box;
+            
+            for(int i=0;i<_mbug_box;++i){
+                BugBox b_(eang*i,eang*.9,PHEIGHT/2);
+                _bug_box.push_back(b_);
+            }
+            break;
 	}
 	_effect=set_;
 }
@@ -928,7 +1014,7 @@ Blob ofApp::contourApproxBlob(vector<cv::Point>& contour_){
     cv::approxPolyDP(cv::Mat(contour_),poly_,2,false);
     bounding_=cv::boundingRect(cv::Mat(poly_));
 	minEnclosingCircle(poly_,center_,rad_);
-    ofLog()<<center_.x<<", "<<center_.y;
+    //ofLog()<<center_.x<<", "<<center_.y;
     
     for(auto& p:contour_){
         p.x-=center_.x;
@@ -1126,13 +1212,15 @@ void ofApp::updatePacMan(PacMan& p_){
 	if(next_==-100){	
 		//p_.restart(findWhiteStart(p_._ghost),3);
         p_.goDie();
-        triggerSound();
+       // triggerSound();
         
 	}else{
 		p_.setPos(pos_+(p_._ghost?PacMan::GDirection[next_]:PacMan::Direction[next_])*PACMANVEL);
-		p_._dir=next_;
+		
+        if(abs(p_._dir-next_)>=2) triggerSound();
+        p_._dir=next_;
         
-        //`if(abs(next_)>=2) triggerTurn();
+        
 	}	
 
 }
@@ -1212,7 +1300,7 @@ void ofApp::checkPacManCollide(){
                 _pacman[i].goDie();
                 _pacman[j].goDie();
                 
-                triggerSound();
+               // triggerSound();
                 
 //                if(_pacman[i]._ghost || _pacman[j]._ghost) triggerSound(3);
 //                else triggerSound(3);
@@ -1224,36 +1312,148 @@ void ofApp::checkPacManCollide(){
 #pragma mark EFFECT_BLOB
 
 
-float ofApp::selectBlob(){
-
-	
-	/*random_shuffle(_collect_blob.begin(),_collect_blob.end());
-	for(int i=0;i<_mselect_blob;++i){
-		_collect_blob[i].setTrigger(true);
-	}*/
-    if(_not_selected.size()<1) return 0;
+//float ofApp::selectBlob(DetectBlob from_){
+//
+//	
+//	/*random_shuffle(_collect_blob.begin(),_collect_blob.end());
+//	for(int i=0;i<_mselect_blob;++i){
+//		_collect_blob[i].setTrigger(true);
+//	}*/
+//    if(_not_selected.size()<mSelectBlob) return 0;
+//    
+//    float frame_=PWIDTH*PHEIGHT;
+//    float area_=0;
+//    ofVec2f cent_(0,0);
+//    for(int i=0;i<mSelectBlob;++i){
+//        DetectBlob b=_not_selected[0];
+//        area_+=b._blob._bounding.area();
+//        cent_+=ofVec2f(b._blob._center.x,b._blob._center.y);
+//        
+//        b.setTrigger(true);
+//        _not_selected.erase(_not_selected.begin());
+//        _selected.push_back(b);
+//    }
+//    
+//    DetectBlob::Center=cent_/mSelectBlob;
+//
+//    float char_=ofMap(area_,_param->_blob_small,_param->_blob_large*frame_,.5,1.5);
+//    
+//	std::sort(_not_selected.begin(),_not_selected.end());
+//	
+//    return char_;
+//}
+void ofApp::addSelectKey(){
+    vector<DetectBlob> seq_;
     
-	DetectBlob b=_not_selected[0];
-	DetectBlob::Center=ofVec2f(b._blob._center.x,b._blob._center.y);
-
-	_not_selected.erase(_not_selected.begin());
-	
-    float frame_=PWIDTH*PHEIGHT;
-    float char_=ofMap(b._blob._bounding.area(),_param->_blob_small,_param->_blob_large*frame_,.2,20.0);
     
-	b.setTrigger(true);
-	_selected.push_back(b);
-	
-	std::sort(_not_selected.begin(),_not_selected.end());
-	
-    return char_;
+    //copy not_selected
+//    _not_selected.clear();
+//    for(auto b:_collect_blob) _not_selected.push_back(b);
+    
+    int len=_not_selected.size();
+    if(len<1) return;
+    
+    
+    int ind=floor(ofRandom(len));
+    int step_=floor(ofRandom(5)+_param->_select_len);
+    
+    cv::Point cur_=_not_selected[ind]._blob._center;
+    
+    for(int i=0;i<step_;++i){
+        vector<DetectBlob> res_=getNextBlob(cur_,_param->_mper_select);
+        int rlen=res_.size();
+        for(int j=0;j<rlen;++j) seq_.push_back(res_[j]);
+    }
+    if(seq_.size()<1) return;
+    
+    SelectSeq s(_param->_select_vel*ofRandom(.75,1.25),seq_.size(),_param->_mper_select);
+    s._blobs=seq_;
+    
+    _selected.push_back(s);
 }
+
+vector<DetectBlob> ofApp::getNextBlob(cv::Point cent_,int count_){
+    
+    vector<DetectBlob> res_;
+    
+    DetectBlob::Center=ofVec2f(cent_.x,cent_.y);
+    std::sort(_not_selected.begin(),_not_selected.end());
+    
+    for(int i=0;i<min(count_,(int)_not_selected.size());++i){
+        res_.push_back(_not_selected[0]);
+        _not_selected.erase(_not_selected.begin());
+    }
+    return res_;
+}
+
+
+void ofApp::updateSelectSeq(SelectSeq& seq){
+    
+    if(seq._anim.val()<1 || seq._dead) return;
+
+    bool trigger_=false;
+    float area_=0;
+    for(int i=0;i<_param->_mper_select;++i){
+        if(seq._index<seq._count){
+            seq._blobs[seq._index].setTrigger(true);
+            area_+=seq._blobs[seq._index]._blob._rad;
+            
+            trigger_=true;
+            seq._index++;
+            
+        }
+    }
+    if(trigger_){
+        triggerSound();
+        
+        float char_=ofMap(area_,10,PHEIGHT*.3,_param->_select_vel+.5,_param->_select_vel+1.5);
+        seq._anim.setDue(char_);
+        seq._anim.restart();
+    }else{
+        seq._anim.stop();
+        seq._dead=true;
+        
+//        for(auto& b:seq._blobs){
+//            b.setTrigger(false);
+//            _not_selected.push_back(b);
+//        }
+        
+        
+        addSelectKey();
+        
+    }
+    
+
+    
+}
+
+
+#pragma mark EFFECT_BUG
+bool ofApp::checkBugTouch(BugBox& box_){
+    
+    bool touched=false;
+    
+    for(auto& b:_collect_blob){
+        if(box_.intersect(b._blob)){
+            b.setTrigger(true);
+            touched=true;
+        }
+    }
+    if(touched && !box_._trigger){
+        triggerSound();
+    }
+    box_._trigger=touched;
+    
+    return touched;
+
+}
+
 
 #pragma mark LIVE_TRIGGER
 void ofApp::triggerSound(){
 	vector<float> p_;
 		p_.push_back(_track);
-		p_.push_back(floor(ofRandom(TrackCount[_track])));
+		p_.push_back(floor(ofRandom(SoundTrackCount[_track])));
 		sendOSC("/live/play/clip",p_);
 }
 

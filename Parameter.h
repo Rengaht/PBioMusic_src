@@ -22,10 +22,14 @@ public:
 	float _scan_width;
 
 	float _select_vel;
-	int _mselect;
-
+	int _mper_select;
+    int _select_len;
+    
+    
 	string _live_addr;
     string _serial_port;
+    
+    
 
 	GlobalParam(){
 		readParam();
@@ -54,7 +58,8 @@ public:
 		_scan_width=_param.getValue("SCAN_WIDTH",2);
 
 		_select_vel=_param.getValue("SELECT_VEL",200);
-		_mselect=_param.getValue("MSELECT",5);
+		_mper_select=_param.getValue("MSELECT",5);
+        _select_len=_param.getValue("SELECT_LEN",10);
 
 		 _live_addr=_param.getValue("LIVE_ADDRESS","127.0.0.1");
         
@@ -75,7 +80,9 @@ public:
 		_param.setValue("SCAN_VEL",_scan_vel);
 		_param.setValue("SCAN_WIDTH",_scan_width);
 
-		_param.setValue("MSELECT",_mselect);
+		_param.setValue("MSELECT",_mper_select);
+        _param.setValue("SELECT_LEN",_select_len);
+        
 		_param.setValue("SELECT_VEL",_select_vel);
 		_param.setValue("LIVE_ADDRESS",_live_addr);
         

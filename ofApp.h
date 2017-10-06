@@ -11,6 +11,7 @@
 #elif __APPLE__
 #include "ofxSyphon.h"
 #endif
+#include "ofxPostProcessing.h"
 
 
 #define VWIDTH 585.0
@@ -28,7 +29,7 @@
 
 
 //#define USE_VIDEO
-//#define USE_REF
+#define USE_REF
 
 
 #define MAXBLOB 20
@@ -47,7 +48,9 @@ class ofApp : public ofBaseApp{
 		float _last_millis,_dmillis;
 	public:
     
-        static int* TrackCount;
+        static int* SoundTrackCount;
+        static int mSelectBlob;
+        static int mBugBox;
     
 		void setup();
 		void update();
@@ -77,11 +80,11 @@ class ofApp : public ofBaseApp{
 		ofVideoGrabber 		_camera;
 #endif
         cv::Mat _mat_grab,_mat_scale,_mat_resize,_mat_contrast,_mat_gray,_mat_normalize,
-			_mat_thres,_mat_edge,_mat_morph;
+			_mat_thres,_mat_edge,_mat_morph,_mat_pacman;
 
 		ofPixels _output_pixels;
 		ofImage _img_resize,_img_gray,_img_normalize,_img_thres,
-			    _img_contrast,_img_edge,_img_morph;
+			    _img_contrast,_img_edge,_img_morph,_img_pacman;
 
 		ofImage _img_ref;
 
@@ -142,8 +145,10 @@ class ofApp : public ofBaseApp{
         //scan
 		FrameTimer _anim_scan;
 
-
-		enum SCANDIR {VERT,RADIAL};
+        float _scan_range;
+        float _scan_pos;
+    
+        enum SCANDIR {VERT,RADIAL};
 		SCANDIR _scan_dir;
 		void checkScan(SCANDIR dir_);
 	    vector<bool> _scan_touched;
@@ -171,16 +176,25 @@ class ofApp : public ofBaseApp{
     
     
 	   //blob
-	   FrameTimer _anim_select;
-	   float selectBlob();
-	   
-	   vector<DetectBlob> _selected;
+       int _mselectBlob;
+       FrameTimer _anim_select;
+	   vector<DetectBlob> getNextBlob(cv::Point cent_,int count);
+       void addSelectKey();
+       void updateSelectSeq(SelectSeq& seq_);
+    
+       vector<SelectSeq> _selected;
 	   vector<DetectBlob> _not_selected;
     
     
       //bird
-      vector<DetectBlob> _bird;
-       
+       vector<DetectBlob> _bird;
+    
+    
+        //bug
+       int _mbug_box;
+       vector<BugBox> _bug_box;
+    
+       bool checkBugTouch(BugBox& box_);
 
 	   //sound
        int _track;
@@ -205,5 +219,10 @@ class ofApp : public ofBaseApp{
         ofSerial _serial;
         void updateSerial();
     
+        //postprocessing
+        ofxPostProcessing _postprocess;
+        ofEasyCam _cam;
+        ofLight _light;
+        int _ipost;
     
 };

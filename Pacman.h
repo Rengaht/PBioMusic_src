@@ -32,11 +32,12 @@ public:
     bool _dead;
     FrameTimer _timer_dead;
     
+    
+    
     PacMan(int d_){
         _pos=ofVec2f(0,0);
         _dir=d_;
         _ghost=false;
-        _gcolor=floor(ofRandom(4));
         
         _timer_dead=FrameTimer(500);
         _dead=false;
@@ -79,23 +80,21 @@ public:
         
         ofPushStyle();
         
-        if(!_dead){
+//        if(!_dead){
             
-            if(_ghost) ofSetColor(GColor[_gcolor],255);
-            else ofSetColor(255,255,0,255);
+            ofSetColor(252,212,55);
             ofFill();
             ofDrawCircle(0,0,Rad);
             
-        }else{
+//        }else{
             
-            float a_=255.0*(1.0-_timer_dead.val());
-            
-            if(_ghost) ofSetColor(GColor[_gcolor],a_);
-            else ofSetColor(255,255,0,a_);
-            ofFill();
-            ofDrawCircle(0,0,Rad*(1.0+2*_timer_dead.val()));
-            
-        }
+//            float a_=255.0*(1.0-_timer_dead.val());
+//            
+//            if(_ghost) ofSetColor(GColor[_gcolor],a_);
+//            else ofSetColor(255,255,0,a_);
+//            ofFill();
+//            ofDrawCircle(0,0,Rad*(1.0+2*_timer_dead.val()));
+//        }
         
         ofPopStyle();
         ofPopMatrix();
@@ -114,13 +113,15 @@ public:
     ofVec2f getPos(){
         return _pos;
     }
-    void restart(ofVec2f p_,int d_){
-        _path.clear();
-        _pos=p_;
-        _dir=d_;
-        _dead=false;
-        _timer_dead.reset();
-    }
+//    void restart(ofVec2f p_){
+//        _path.clear();
+//        _pos=p_;
+//        _dead=false;
+//        _timer_dead.reset();
+//        
+//        _gcolor=floor(ofRandom(4));
+//        
+//    }
     void goDie(){
         if(!_dead){
             _dead=true;
