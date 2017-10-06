@@ -122,14 +122,15 @@ public:
     static float MaxSpeed;
     static float MaxForce;
     static ofVec2f Center;
+    static float CenterForce;
     
-    ofColor _center_color;
+    //ofColor _center_color;
 
 	DetectBlob(){
 		_trigger=false;
 		_walk_pos=0;
 		_life=LIFESPAN;
-		_color=floor(ofRandom(MBCOLOR));
+		_color=floor(ofRandom(2));
 		_danim=FrameTimer(100+ofRandom(50),ofRandom(100));
 		_danim.setContinuous(true);
 		_danim.restart();
@@ -250,16 +251,16 @@ public:
         
         ofPushMatrix();
         ofTranslate(d_,d_);
-        ofNoFill();
-        ofSetColor(DetectBlob::BColor[0],255.0*p_);
+        ofFill();
+        ofSetColor(DetectBlob::BColor[3],255.0*p_);
         
         drawShape(1);
         ofPopMatrix();
         
         ofPushMatrix();
         ofTranslate(-d_,-d_);
-        ofNoFill();
-        ofSetColor(DetectBlob::BColor[1],255.0*p_);
+        ofFill();
+        ofSetColor(DetectBlob::BColor[4],255.0*p_);
         
         drawShape(1);
         ofPopMatrix();
@@ -272,13 +273,13 @@ public:
         
     }
 
-    void drawBird(){
+    void drawBirdBack(){
+        
+        if(!_trigger) return;
         
         ofPushStyle();
         float d_=2.0*_danim.val();
         
-        
-        if(_trigger){
             ofPushMatrix();
             ofTranslate(_blob._center.x,_blob._center.y);
             
@@ -298,7 +299,13 @@ public:
             ofPopMatrix();
             
             ofPopMatrix();
-        }
+        
+        ofPopStyle();
+    }
+    void drawBird(){
+        
+        ofPushStyle();
+        float d_=1.0*_danim.val();
         
         ofPushMatrix();
         ofTranslate(_floc.x,_floc.y);
@@ -307,9 +314,13 @@ public:
         
             ofPushMatrix();
             ofTranslate(0,0);
-            if(_trigger) ofSetColor(DetectBlob::BColor[0]);
-            else ofSetColor(DetectBlob::BColor[1]);
             ofFill();
+            if(_trigger) ofSetColor(DetectBlob::BColor[_color]);
+            else ofSetColor(DetectBlob::BColor[(_color+1)%2]);
+                drawShape(1.0);
+            ofTranslate(d_,-d_);
+            if(!_trigger) ofSetColor(DetectBlob::BColor[_color]);
+            else ofSetColor(DetectBlob::BColor[(_color+1)%2]);
                 drawShape(1.0);
             ofPopMatrix();
         
@@ -377,7 +388,7 @@ public:
         
         _trigger=false;
         
-        _center_color=color_;
+        //_center_color=color_;
     }
     void fupdate(vector<DetectBlob>& boids,float dt_){
         
@@ -398,7 +409,7 @@ public:
         ofVec2f ali=align(boids);
         ofVec2f coh=cohesion(boids);
         
-        sep*=1.2;
+        sep*=1.3;
         ali*=1.0;
         coh*=1.0;
         
@@ -407,32 +418,22 @@ public:
         applyForce(coh);
         
         
-        // boundary
-//        ofVec2f desired;
-//         if(_floc.x>PHEIGHT){
-//            // desired=ofVec2f(-MaxSpeed,_fvel.y);
-//             applyForce(ofVec2f(-MaxForce*3,0));
-//         }else if(_floc.x<0){
-//            // desired=ofVec2f(MaxSpeed,_fvel.y);
-//             applyForce(ofVec2f(MaxForce*3,0));
-//         }
-//         if(_floc.y>PHEIGHT){
-//            // desired=ofVec2f(_fvel.x,-MaxSpeed);
-//             applyForce(ofVec2f(0,-MaxForce*3));
-//         }else if(_floc.y<0){
-//           //  desired=ofVec2f(_fvel.x,MaxSpeed);
-//             applyForce(ofVec2f(0,MaxForce*3));
-//         }
-//         if(desired.length()>0){
-//             ofVec2f steer=desired-_fvel;
-//             steer.limit(MaxForce*5);
-//             applyForce(steer);
-//         }
-        
+         //boundary
+        ofVec2f desired;
+         if(_floc.x>PHEIGHT){
+             applyForce(ofVec2f(-MaxForce,0));
+         }else if(_floc.x<0){
+             applyForce(ofVec2f(MaxForce,0));
+         }
+         if(_floc.y>PHEIGHT){
+             applyForce(ofVec2f(0,-MaxForce));
+         }else if(_floc.y<0){
+             applyForce(ofVec2f(0,MaxForce));
+         }
         //center
         ofVec2f cent_desired=Center-_floc;
         ofVec2f cent_steer=cent_desired-_fvel;
-        cent_steer.limit(MaxForce*2);
+        cent_steer.limit(MaxForce*CenterForce);
         applyForce(cent_steer);
     }
     

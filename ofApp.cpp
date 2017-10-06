@@ -117,9 +117,11 @@ void ofApp::update(){
 
     int len;
     bool alldead_;
-
+    ofVec2f bdir_;
+    
 	bool new_=false;
-	 new_=updateSource();
+    new_=updateSource();
+    
 	
 	switch(_mode){
 		case RUN:
@@ -148,8 +150,12 @@ void ofApp::update(){
 				case SCAN:
 					_anim_scan.update(_dmillis);
                     if(_anim_scan.val()>=1){
-                        for(auto& b:_collect_blob) b.setTrigger(false);
                         _anim_scan.restart();
+                        if(_scan_pos<_scan_range) _scan_pos++;
+                        else{
+                          _scan_pos=0;
+                          for(auto& b:_collect_blob) b.setTrigger(false);
+                        }
                     }
                     checkScan(_scan_dir);
 					break;
@@ -215,6 +221,11 @@ void ofApp::update(){
                     }
 					break;
                 case BIRD:
+                    bdir_=ofVec2f(PHEIGHT*.1,0);
+                    bdir_.rotate(360.0*abs(sin(ofGetFrameNum()/50.0)));
+                    bdir_+=ofVec2f(PHEIGHT/2,PHEIGHT/2);
+                    DetectBlob::Center=bdir_;
+                    
                     for(auto& b:_bird){
                         b.fupdate(_bird,_dmillis);
                         if(DetectBlob::Center.distance(ofVec2f(b._floc.x,b._floc.y))>PHEIGHT/2*.9){
@@ -280,7 +291,6 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth()/2-VHEIGHT/2,ofGetHeight()/2-VHEIGHT/2);
     
     ofScale(ratio_,ratio_);
-    
     
     
 	switch(_mode){
@@ -377,22 +387,39 @@ void ofApp::draw(){
                         b.drawScan(1.0,_font);
                     }
 				ofPushStyle();
-				ofSetColor(255,0,0,255);
+                ofSetColor(DetectBlob::BColor[3]);
 				ofNoFill();
-                ofSetLineWidth(2);
+                ofSetLineWidth(5);
                     
 				if(_scan_dir==SCANDIR::VERT){
-//					float h_=(float)PHEIGHT/_param->_mscan_region;
-//					for(int i=0;i<_param->_mscan_region;++i){
-//						if(_scan_touched[i]) ofSetColor(255,0,0);
-//						else ofSetColor(255);
-//
-//						ofDrawLine(_anim_scan.val()*PHEIGHT,i*h_,_anim_scan.val()*PHEIGHT,(i+1)*h_);
-//					}
-                    ofDrawLine(_anim_scan.val()*PHEIGHT,0,_anim_scan.val()*PHEIGHT,PHEIGHT);
+
+                    //ofDrawLine(_anim_scan.val()*PHEIGHT,0,_anim_scan.val()*PHEIGHT,PHEIGHT);
+                    float ehei=PHEIGHT*.8/_scan_range;
+                    float ebegin=PHEIGHT*.2;
+                    //ofDrawRectangle(0,(_scan_range-_scan_pos)*ehei,_anim_scan.val()*PHEIGHT,ehei);
+                    ofDrawLine(0,(_scan_range-_scan_pos)*ehei+ebegin,_anim_scan.val()*PHEIGHT,(_scan_range-_scan_pos)*ehei+ebegin);
+                    for(int i=0;i<_scan_pos;++i)
+                       // ofDrawRectangle(0,(_scan_range-i)*ehei,PHEIGHT,ehei);
+                        ofDrawLine(0,(_scan_range-i)*ehei+ebegin,PHEIGHT,(_scan_range-i)*ehei+ebegin);
+                    
                     
 				}else if(_scan_dir==SCANDIR::RADIAL){
-					float rad_=_anim_scan.val()*max(PHEIGHT,PHEIGHT)/2;
+                    ofPushMatrix();
+                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
+                    
+                    float eang=360.0/_scan_range;
+					ofVec2f dir(PHEIGHT/2,0);
+                    dir.rotate(eang*_scan_pos);
+                    
+                    ofDrawLine(0,0,dir.x*_anim_scan.val(),dir.y*_anim_scan.val());
+                    
+                    for(int i=0;i<_scan_pos;++i){
+                        ofVec2f dir_(PHEIGHT/2,0);
+                        dir_.rotate(eang*i);
+                        
+                        ofDrawLine(0,0,dir_.x,dir_.y);
+                    }
+                    ofPopMatrix();
 //					ofPolyline arc_;
 //					arc_.arc(0,0,rad_,rad_,0,360.0/_param->_mscan_region,100);				
 //
@@ -405,12 +432,12 @@ void ofApp::draw(){
 //						arc_.draw();
 //						ofPopMatrix();
 //					}
-                    ofPolyline arc_;
-                    arc_.arc(0,0,rad_,rad_,0,360.0,100);
-                    ofPushMatrix();
-                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
-                    arc_.draw();
-                    ofPopMatrix();
+//                    ofPolyline arc_;
+//                    arc_.arc(0,0,rad_,rad_,0,360.0,100);
+//                    ofPushMatrix();
+//                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
+//                    arc_.draw();
+//                    ofPopMatrix();
 				}
 				ofPopStyle();
 				break;
@@ -434,6 +461,7 @@ void ofApp::draw(){
                 break;
             case BIRD:
                     _img_edge.draw(0,0,PHEIGHT,PHEIGHT);
+                    for(auto& b:_bird) b.drawBirdBack();
                     for(auto& b:_bird) b.drawBird();
                     break;
             case BUG:
@@ -768,7 +796,7 @@ void ofApp::keyPressed(int key){
             setMode(MODE::DETECT);
             break;
 		case '2':
-			_next_effect=DEFFECT::SCAN;
+			_next_effect=DEFFECT::BLOB_SELECT;
             _track=1;
             setMode(MODE::DETECT);
 			break;
@@ -805,6 +833,13 @@ void ofApp::keyPressed(int key){
 				case BLOB_SELECT:
                     addSelectKey();
 					break;
+                case BIRD:
+                    DetectBlob::CenterForce=ofClamp(DetectBlob::CenterForce-.5,2,3.5);
+                    
+                    DetectBlob::MaxForce=ofClamp(DetectBlob::MaxForce-.02,.1,.18);
+                    DetectBlob::MaxSpeed=ofClamp(DetectBlob::MaxSpeed+1,9,15);
+                    ofLog()<<"Bird param: "<<DetectBlob::CenterForce<<" "<<DetectBlob::MaxForce<<" "<<DetectBlob::MaxSpeed;
+                    break;
 			}
 			break;
 		case 'z':
@@ -816,6 +851,15 @@ void ofApp::keyPressed(int key){
                 case BLOB_SELECT:
                     setEffect(DEFFECT::BLOB_SELECT);
                     break;
+                case BIRD:
+                    DetectBlob::CenterForce=ofClamp(DetectBlob::CenterForce+.5,2,3.5);
+                    
+                    DetectBlob::MaxForce=ofClamp(DetectBlob::MaxForce+.02,.1,.18);
+                    DetectBlob::MaxSpeed=ofClamp(DetectBlob::MaxSpeed-1,9,15);
+                    
+                    ofLog()<<"Bird param: "<<DetectBlob::CenterForce<<" "<<DetectBlob::MaxForce<<" "<<DetectBlob::MaxSpeed;
+                    break;
+                    
 			}
 			break;
         /* utility */
@@ -942,7 +986,7 @@ void ofApp::setEffect(DEFFECT set_){
                 
                 _nonzero_point.push_back(p_);
                 
-                if(ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2)>=PHEIGHT/2*.8){
+                if(ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2)>=PHEIGHT/2*.75){
                     if(p_.y<PHEIGHT/2) _nonzero_start.push_back(p_);
                     else _nonzero_gstart.push_back(p_);
                 }
@@ -959,6 +1003,8 @@ void ofApp::setEffect(DEFFECT set_){
 			break;
 		case SCAN:
 			_anim_scan.restart();
+            _scan_pos=0;
+            _scan_range=_param->_mscan_region;
 			break;
 		case BLOB_SELECT:
 			_anim_select.restart();
@@ -975,6 +1021,10 @@ void ofApp::setEffect(DEFFECT set_){
 			
 			break;
         case BIRD:
+            DetectBlob::MaxSpeed=9;
+            DetectBlob::MaxForce=.22;
+            DetectBlob::CenterForce=3.0;
+            
             _bird.clear();
             for(auto& b:_collect_blob){
                 if(b._blob._rad>PHEIGHT*.1) continue;
@@ -1076,40 +1126,29 @@ bool ofApp::isSimilar(Blob b1_,Blob b2_){
 
 #pragma mark EFFECT_SCAN
 bool ofApp::isScanned(DetectBlob detect_){
-    //ofLog()<<rect_.getMinX()<<"  "<<rect_.getMaxX();
-    //	ofRectangle rect_=blob_.boundingRect;
-    //	bool scan_=rect_.getMinX()<_scan_pos && rect_.getMaxX()>_scan_pos;
-    //
-    //	// check if triggered
-    //	if(scan_){
-    //		bool new_=true;
-    //		for(ofxCvBlob &b:_last_trigger){
-    //			if(isSimilar(blob_,b)){
-    //				new_=false;
-    //				b=blob_;
-    //				break;
-    //			}
-    //		}
-    //		if(new_){
-    //			_last_trigger.push_back(blob_);
-    //
-    //		}
-    //	}
-    //	return scan_;
+    
+    float ehei=PHEIGHT*.8/_scan_range;
+    float ebegin=PHEIGHT*.2;
+    float eang=360.0/_scan_range;
     
     float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*PHEIGHT:_anim_scan.val()*PHEIGHT/2;
+    float rpos_=(_scan_dir==SCANDIR::VERT)?(_scan_range-_scan_pos)*ehei+ebegin:_scan_pos*eang;
+    cv::Rect rec_(0,rpos_,spos_,ehei);
+    
     float dist=0;
     float ang=0;
     
     switch(_scan_dir){
         case VERT:
-            if(spos_>=detect_._blob._bounding.x && spos_<detect_._blob._bounding.x+detect_._blob._bounding.width) return true;
+            if((rec_&detect_._blob._bounding).area() >0) return true;
             break;
         case RADIAL:
             dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PHEIGHT/2,PHEIGHT/2);
-            // ang=atan2(blob_.centroid.y-PHEIGHT/2,blob_.centroid.x-PWIDTH/2)+HALF_PI;
+            ang=ofRadToDeg(fmod(atan2(detect_._blob._center.y-PHEIGHT/2,detect_._blob._center.x-PHEIGHT/2)+TWO_PI,TWO_PI));
+            
             float brad_=detect_._blob._rad;//max(detect_._blob._bounding.width,detect_._blob._bounding.height)/2;
-            if(dist-brad_<spos_ && dist+brad_>spos_) return true;
+            if(dist-brad_<spos_ && dist+brad_>spos_ && ang>rpos_-eang/2 && ang<=eang/2+rpos_) return true;
+            
             break;
             
     }
@@ -1133,23 +1172,16 @@ void ofApp::checkScan(SCANDIR dir_){
         switch(_scan_dir){
             case VERT:
                 if(isScanned(b)){
-                    //					int pos=int(floor(b._blob._center.y/epos_));
-                    //					pos=ofClamp(pos,0,_scan_touched.size()-1);
-                    //					_scan_touched[pos]=true;
-                    
                     if(!b.getTrigger()){
                         b.setTrigger(true);
                         mtrigger++;
                         triggerSound();
                         
                     }
-                }//else b.setTrigger(false);
+                }
                 break;
             case RADIAL:
                 if(isScanned(b)){
-                    //					int region_=(int)(floor(ang/TWO_PI*_param->_mscan_region));
-                    //					region_=ofClamp(region_,0,_scan_touched.size()-1);
-                    //					_scan_touched[region_]=true;
                     
                     if(!b.getTrigger()){
                         b.setTrigger(true);
@@ -1181,26 +1213,28 @@ void ofApp::updatePacMan(PacMan& p_){
 	ofVec2f pos_=p_.getPos();
 
 	//find next white
-	int next_=-100;	
-	vector<int> change_(4);
-	change_[0]=1;
-	change_[1]=-1;
-	change_[2]=2;
-	change_[3]=-2;
+	ofVec2f next_(0);
+    int mturn_=3;
+    vector<int> change_(mturn_*2);
+    for(int i=1;i<=mturn_;++i){
+        change_[2*i]=i;
+        change_[2*i+1]=-i;
+    }
 	
 	random_shuffle(change_.begin(),change_.end());
 
 	
 	//check original direction first
-	if(goodStep(p_,(p_._ghost?PacMan::GDirection[p_._dir]:PacMan::Direction[p_._dir]))){
-		next_=p_._dir;		
+    if(goodStep(p_,p_._dir)){
+		next_=p_._dir;
 	}else{	
 		
 
-		for(int i=0;i<4;++i){
-			int n_=(p_._dir+change_[i]+5)%5;
-			if(goodStep(p_,(p_._ghost?PacMan::GDirection[n_]:PacMan::Direction[n_]))){
-				next_=n_;
+		for(int i=0;i<mturn_*2;++i){
+            ofVec2f ndir_=p_._dir;
+            ndir_.rotate(i*PacMan::CornerAngle);
+            if(goodStep(p_,ndir_)){
+				next_=ndir_;
 				break;
 				//cout<<endl;
 			}
@@ -1209,15 +1243,15 @@ void ofApp::updatePacMan(PacMan& p_){
 		//cout<<endl;
 
 	}
-	if(next_==-100){	
+	if(next_.length()==0){
 		//p_.restart(findWhiteStart(p_._ghost),3);
         p_.goDie();
        // triggerSound();
         
 	}else{
-		p_.setPos(pos_+(p_._ghost?PacMan::GDirection[next_]:PacMan::Direction[next_])*PACMANVEL);
+		p_.setPos(pos_+next_*PACMANVEL);
 		
-        if(abs(p_._dir-next_)>=2) triggerSound();
+        if(p_._dir.angle(next_)>=PacMan::CornerAngle*2) triggerSound();
         p_._dir=next_;
         
         
@@ -1488,14 +1522,14 @@ void ofApp::receiveOSC(){
 		// get the next message
 		ofxOscMessage m;
 		_osc_receiver.getNextMessage(m);
-		cout<<"recieve message: "<<m.getAddress()<<" ";
+		//cout<<"recieve message: "<<m.getAddress()<<" ";
         for(int i=0;i<m.getNumArgs();++i){
             auto t_=m.getArgType(i);
-            if(t_==OFXOSC_TYPE_INT32) cout<<m.getArgAsInt(i)<<" ";
-            else if(t_==OFXOSC_TYPE_FLOAT) cout<<m.getArgAsFloat(i)<<" ";
+          //  if(t_==OFXOSC_TYPE_INT32) cout<<m.getArgAsInt(i)<<" ";
+          //  else if(t_==OFXOSC_TYPE_FLOAT) cout<<m.getArgAsFloat(i)<<" ";
 
         }
-		cout<<endl;
+		//cout<<endl;
 	}
 
 }

@@ -12,16 +12,17 @@ ofVec2f* PacMan::GDirection=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,-1),ofVec2f(0,
 
 
 
-float PacMan::Rad=3;
-int PacMan::MPathRecord=12;
+float PacMan::Rad=2;
+int PacMan::MPathRecord=50;
 ofColor* PacMan::GColor=new ofColor[4]{ofColor(0,255,222),ofColor(255,184,222),ofColor(255,184,71),ofColor(255,0,0)};
-
+float PacMan::CornerAngle=30;
 
 //ofColor* DetectBlob::BColor=new ofColor[5]{ofColor(0,230,240),ofColor(0,255,0),ofColor(255,255,0),ofColor(255,104,0),ofColor(255,20,171)};
-ofColor* DetectBlob::BColor=new ofColor[3]{ofColor(20,36,255),ofColor(242,42,78),ofColor(75,255,56)};
+ofColor* DetectBlob::BColor=new ofColor[5]{ofColor(20,36,255),ofColor(242,42,78),ofColor(75,255,56),ofColor(85,255,200),ofColor(206,0,245)};
 ofVec2f DetectBlob::Center=ofVec2f(PHEIGHT/2,PHEIGHT/2);
-float DetectBlob::MaxSpeed=8;
-float DetectBlob::MaxForce=.2;
+float DetectBlob::MaxSpeed=9;
+float DetectBlob::MaxForce=.22;
+float DetectBlob::CenterForce=3.0;
 
 int* ofApp::SoundTrackCount=new int[5]{10,5,6,13,5};
 int ofApp::mSelectBlob=5;

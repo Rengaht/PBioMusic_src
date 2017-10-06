@@ -17,13 +17,15 @@ public:
     static ofVec2f* GDirection;
     static int MPathRecord;
     static ofColor* GColor;
+    static float CornerAngle;
     
     static float Rad;
     
     
     /*ofVec2f _vel;
      ofVec2f _acc;*/
-    int _dir;
+    //int _dir;
+    ofVec2f _dir;
     vector<ofVec2f> _path;
     
     bool _ghost;
@@ -34,7 +36,7 @@ public:
     
     
     
-    PacMan(int d_){
+    PacMan(ofVec3f d_){
         _pos=ofVec2f(0,0);
         _dir=d_;
         _ghost=false;
@@ -45,8 +47,10 @@ public:
     PacMan(float x_,float y_,bool g_){
         _pos=ofVec2f(x_,y_);
         _ghost=g_;
-        _dir=2;
         _gcolor=floor(ofRandom(4));
+        
+        _dir=ofVec2f(Rad,0);
+        _dir.rotate(ofRadToDeg(atan2(PHEIGHT/2-x_,PHEIGHT/2-y_)));
         
         _timer_dead=FrameTimer(500);
         _dead=false;
@@ -103,7 +107,7 @@ public:
     }
     void setPos(ofVec2f p_){
         _path.push_back(p_);
-        if(_path.size()>MPathRecord) _path.erase(_path.begin());
+        //if(_path.size()>MPathRecord) _path.erase(_path.begin());
         
         _pos=p_;
     }
