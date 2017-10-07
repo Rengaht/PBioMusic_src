@@ -252,7 +252,7 @@ public:
         ofPushMatrix();
         ofTranslate(d_,d_);
         ofFill();
-        ofSetColor(DetectBlob::BColor[3],255.0*p_);
+        ofSetColor(DetectBlob::BColor[4],255.0*p_);
         
         drawShape(1);
         ofPopMatrix();
@@ -260,7 +260,7 @@ public:
         ofPushMatrix();
         ofTranslate(-d_,-d_);
         ofFill();
-        ofSetColor(DetectBlob::BColor[4],255.0*p_);
+        ofSetColor(DetectBlob::BColor[3],255.0*p_);
         
         drawShape(1);
         ofPopMatrix();
@@ -354,7 +354,7 @@ public:
     
     
 	void drawDebug(){
-		ofPopStyle();
+		ofPushStyle();
 		ofSetColor(255,0,0);
 		ofNoFill();
         

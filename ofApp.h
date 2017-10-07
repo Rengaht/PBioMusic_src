@@ -29,7 +29,7 @@
 
 
 //#define USE_VIDEO
-#define USE_REF
+//#define USE_REF
 
 
 #define MAXBLOB 20
@@ -160,7 +160,8 @@ class ofApp : public ofBaseApp{
 	   vector<cv::Point> _nonzero_start;
 	   vector<cv::Point> _nonzero_gstart;
 
-
+       ofImage _img_pac;
+    
 	   vector<PacMan> _pacman;
 	   ofFbo _fbo_pacman;
         //vector<PacMan> _ghost;

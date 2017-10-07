@@ -73,7 +73,9 @@ void ofApp::setup(){
     _img_mask.load("mask.png");
     _font.load("Menlo.ttc",7);
     
-
+    _img_pac.load("texture.png");
+    
+    
     
     _serial.listDevices();
     _serial.setup(0,9600);
@@ -97,7 +99,8 @@ void ofApp::setup(){
                                
 //--------------------------------------------------------------
 void ofApp::update(){
-	ofBackground(0);
+	
+    ofBackground(0);
     
     _report1.str("");
     _report2.str("");
@@ -180,16 +183,17 @@ void ofApp::update(){
 //                        //floodFill(_mat_morph,cv::Point(p.getPos().x,p.getPos().y),cv::Scalar(255,0,0),&comp,cv::Scalar(20, 20, 20),cv::Scalar(20, 20, 20));
 //                    }
                     _fbo_pacman.begin();
-//                        ofPushStyle();
-//                        ofSetColor(0,1);
-//                        ofFill();
-//                            ofDrawRectangle(0, 0, PHEIGHT, PHEIGHT);
-//                        ofPopStyle();
+                        //ofEnableBlendMode(ofBlendMode::);
+                        //ofPushStyle();
+////                        ofSetColor(0,1);
+////                        ofFill();
+////                            ofDrawRectangle(0, 0, PHEIGHT, PHEIGHT);
+////                        ofPopStyle();
                         for(auto& p:_pacman){
-                            p.draw();
+                            p.draw(_img_pac);
                         }
                     _fbo_pacman.end();
-                    _img_pacman=matToImage(_mat_pacman);
+                    //_img_pacman=matToImage(_mat_pacman);
 
 					break;
 				case BLOB_SELECT:
@@ -386,40 +390,38 @@ void ofApp::draw(){
                     for(auto& b:_collect_blob){
                         b.drawScan(1.0,_font);
                     }
-				ofPushStyle();
-                ofSetColor(DetectBlob::BColor[3]);
-				ofNoFill();
-                ofSetLineWidth(5);
+//				ofPushStyle();
+//                ofSetColor(DetectBlob::BColor[3]);
+//				ofNoFill();
+//                ofSetLineWidth(5);
                     
-				if(_scan_dir==SCANDIR::VERT){
+//				if(_scan_dir==SCANDIR::VERT){
 
-                    //ofDrawLine(_anim_scan.val()*PHEIGHT,0,_anim_scan.val()*PHEIGHT,PHEIGHT);
-                    float ehei=PHEIGHT*.8/_scan_range;
-                    float ebegin=PHEIGHT*.2;
-                    //ofDrawRectangle(0,(_scan_range-_scan_pos)*ehei,_anim_scan.val()*PHEIGHT,ehei);
-                    ofDrawLine(0,(_scan_range-_scan_pos)*ehei+ebegin,_anim_scan.val()*PHEIGHT,(_scan_range-_scan_pos)*ehei+ebegin);
-                    for(int i=0;i<_scan_pos;++i)
-                       // ofDrawRectangle(0,(_scan_range-i)*ehei,PHEIGHT,ehei);
-                        ofDrawLine(0,(_scan_range-i)*ehei+ebegin,PHEIGHT,(_scan_range-i)*ehei+ebegin);
+//                    ofDrawLine(_anim_scan.val()*PHEIGHT,0,_anim_scan.val()*PHEIGHT,PHEIGHT);
+//                    float ehei=PHEIGHT*.7/(float)_scan_range;
+//                    float ebegin=PHEIGHT*.3;
+//                    ofDrawLine(0,(_scan_range-_scan_pos)*ehei-ebegin,_anim_scan.val()*PHEIGHT,(_scan_range-_scan_pos)*ehei-ebegin);
+//                    for(int i=0;i<_scan_pos;++i)
+//                        ofDrawLine(0,(_scan_range-i)*ehei,PHEIGHT,(_scan_range-i)*ehei);
+//                    
                     
+//				}else if(_scan_dir==SCANDIR::RADIAL){
+//                    ofPushMatrix();
+//                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
                     
-				}else if(_scan_dir==SCANDIR::RADIAL){
-                    ofPushMatrix();
-                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
-                    
-                    float eang=360.0/_scan_range;
-					ofVec2f dir(PHEIGHT/2,0);
-                    dir.rotate(eang*_scan_pos);
-                    
-                    ofDrawLine(0,0,dir.x*_anim_scan.val(),dir.y*_anim_scan.val());
-                    
-                    for(int i=0;i<_scan_pos;++i){
-                        ofVec2f dir_(PHEIGHT/2,0);
-                        dir_.rotate(eang*i);
-                        
-                        ofDrawLine(0,0,dir_.x,dir_.y);
-                    }
-                    ofPopMatrix();
+//                    float eang=360.0/_scan_range;
+//					ofVec2f dir(PHEIGHT/2,0);
+//                    dir.rotate(eang*_scan_pos);
+//                    
+//                    ofDrawLine(0,0,dir.x*_anim_scan.val(),dir.y*_anim_scan.val());
+//                    
+//                    for(int i=0;i<_scan_pos;++i){
+//                        ofVec2f dir_(PHEIGHT/2,0);
+//                        dir_.rotate(eang*i);
+//                        
+//                        ofDrawLine(0,0,dir_.x,dir_.y);
+//                    }
+//                    ofPopMatrix();
 //					ofPolyline arc_;
 //					arc_.arc(0,0,rad_,rad_,0,360.0/_param->_mscan_region,100);				
 //
@@ -438,14 +440,21 @@ void ofApp::draw(){
 //                    ofTranslate(PHEIGHT/2,PHEIGHT/2);
 //                    arc_.draw();
 //                    ofPopMatrix();
-				}
-				ofPopStyle();
+//				}
+//				ofPopStyle();
 				break;
 			case EDGE_WALK:
-				_img_pacman.draw(0,0,PHEIGHT,PHEIGHT);
+//				_img_pacman.draw(0,0,PHEIGHT,PHEIGHT);
+                _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+//                    ofPushStyle();
+//                    ofSetColor(255,120);
+                    _img_morph.draw(0,0,PHEIGHT,PHEIGHT);
+                   // ofPushStyle();
 				//for(auto& b:_collect_blob) b.draw(1.0,false);
                 _fbo_pacman.draw(0,0);
-
+//                for(auto& p:_pacman){
+//                    p.draw(_img_pac);
+//                }
 				_report1<<"effect:pacman"<<endl;
                 _report1<<"mpac="<<_pacman.size()<<endl;
 				
@@ -796,7 +805,7 @@ void ofApp::keyPressed(int key){
             setMode(MODE::DETECT);
             break;
 		case '2':
-			_next_effect=DEFFECT::BLOB_SELECT;
+			_next_effect=DEFFECT::SCAN;
             _track=1;
             setMode(MODE::DETECT);
 			break;
@@ -825,8 +834,9 @@ void ofApp::keyPressed(int key){
         case 'a':
 			switch(_effect){
 				case SCAN:
-					_scan_dir=SCANDIR(((int)_scan_dir+1)%2);
-					break;		
+                    _anim_scan.setDue(ofClamp(_anim_scan.getDue()-500,_param->_scan_vel/10.0,_param->_scan_vel));
+                    ofLog()<<_anim_scan.getDue();
+                    break;
 				case EDGE_WALK:
 					addPacMan(ofRandom(2)<1);
 					break;
@@ -840,10 +850,16 @@ void ofApp::keyPressed(int key){
                     DetectBlob::MaxSpeed=ofClamp(DetectBlob::MaxSpeed+1,9,15);
                     ofLog()<<"Bird param: "<<DetectBlob::CenterForce<<" "<<DetectBlob::MaxForce<<" "<<DetectBlob::MaxSpeed;
                     break;
+                default:
+                    break;
 			}
 			break;
 		case 'z':
 			switch(_effect){
+                case SCAN:
+                    _anim_scan.setDue(ofClamp(_anim_scan.getDue()+500,_param->_scan_vel/10.0,_param->_scan_vel));
+                    ofLog()<<_anim_scan.getDue();
+                    break;
 				case EDGE_WALK:
 					//addPacMan(true);
                     removePacMan();
@@ -859,8 +875,18 @@ void ofApp::keyPressed(int key){
                     
                     ofLog()<<"Bird param: "<<DetectBlob::CenterForce<<" "<<DetectBlob::MaxForce<<" "<<DetectBlob::MaxSpeed;
                     break;
-                    
+                default:
+                    break;
 			}
+            break;
+        case 'r':
+            switch(_effect){
+                case EDGE_WALK:
+                    _scan_dir=SCANDIR(((int)_scan_dir+1)%2);
+                    break;
+                default:
+                    break;
+            }
 			break;
         /* utility */
 		case 'd':
@@ -890,7 +916,10 @@ void ofApp::keyPressed(int key){
             message_="motor_slowdown#";
             _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
             break;
-            
+        case 'e':
+            message_="motor_toggle#";
+            _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
         case 'p':
             _postprocess[_ipost]->setEnabled(true);
             _ipost=(_ipost+1)%9;
@@ -975,7 +1004,9 @@ void ofApp::setEffect(DEFFECT set_){
 	int len_=0;
 	switch(set_){
 		case EDGE_WALK:
-            _mat_morph.convertTo(_mat_pacman,CV_8UC3);
+            _img_morph.draw(0,0,PHEIGHT,PHEIGHT);
+            
+            //_mat_morph.convertTo(_mat_pacman,CV_8UC3);
 			cv::findNonZero(_mat_morph,_mat_nonzero);
 			len_=_mat_nonzero.total();
 			_nonzero_point.clear();
@@ -986,9 +1017,11 @@ void ofApp::setEffect(DEFFECT set_){
                 
                 _nonzero_point.push_back(p_);
                 
-                if(ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2)>=PHEIGHT/2*.75){
-                    if(p_.y<PHEIGHT/2) _nonzero_start.push_back(p_);
-                    else _nonzero_gstart.push_back(p_);
+                float d_=ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2);
+                if(d_>=(float)PHEIGHT/2*.7 && d_<=(float)PHEIGHT/2*.85){
+//                    if(p_.y<PHEIGHT/2)
+                        _nonzero_start.push_back(p_);
+//                    else _nonzero_gstart.push_back(p_);
                 }
 			}
 			_pacman.clear();
@@ -997,11 +1030,13 @@ void ofApp::setEffect(DEFFECT set_){
 				//addPacMan(true);
 			}
             _fbo_pacman.begin();
-                ofBackground(0,0);
+                ofClear(255,0);
+                //_img_morph.draw(0,0);
             _fbo_pacman.end();
             
 			break;
 		case SCAN:
+            _anim_scan.setDue(_param->_scan_vel);
 			_anim_scan.restart();
             _scan_pos=0;
             _scan_range=_param->_mscan_region;
@@ -1132,7 +1167,7 @@ bool ofApp::isScanned(DetectBlob detect_){
     float eang=360.0/_scan_range;
     
     float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*PHEIGHT:_anim_scan.val()*PHEIGHT/2;
-    float rpos_=(_scan_dir==SCANDIR::VERT)?(_scan_range-_scan_pos)*ehei+ebegin:_scan_pos*eang;
+    float rpos_=(_scan_dir==SCANDIR::VERT)?(_scan_range-_scan_pos)*ehei:_scan_pos*eang;
     cv::Rect rec_(0,rpos_,spos_,ehei);
     
     float dist=0;
@@ -1232,7 +1267,7 @@ void ofApp::updatePacMan(PacMan& p_){
 
 		for(int i=0;i<mturn_*2;++i){
             ofVec2f ndir_=p_._dir;
-            ndir_.rotate(i*PacMan::CornerAngle);
+            ndir_.rotate(change_[i]*PacMan::CornerAngle);
             if(goodStep(p_,ndir_)){
 				next_=ndir_;
 				break;
@@ -1293,18 +1328,23 @@ bool ofApp::checkWhite(int x_,int y_){
 
 ofVec2f ofApp::findWhiteStart(bool ghost_){
 	
-	if(!ghost_){
-		int len_=_nonzero_start.size();
-		int i_=floor(ofRandom(len_));
-
-		return ofVec2f(_nonzero_start[i_].x,_nonzero_start[i_].y);
-	}else{
-		int len_=_nonzero_gstart.size();
-		int i_=floor(ofRandom(len_));
-
-		return ofVec2f(_nonzero_gstart[i_].x,_nonzero_gstart[i_].y);
-	}
-
+//	if(!ghost_){
+//		int len_=_nonzero_start.size();
+//		int i_=floor(ofRandom(len_));
+//
+//		return ofVec2f(_nonzero_start[i_].x,_nonzero_start[i_].y);
+//	}else{
+//		int len_=_nonzero_gstart.size();
+//		int i_=floor(ofRandom(len_));
+//
+//		return ofVec2f(_nonzero_gstart[i_].x,_nonzero_gstart[i_].y);
+//	}
+    
+    int len_=_nonzero_start.size();
+   
+    int i_=floor(ofRandom(len_));
+    return ofVec2f(_nonzero_start[i_].x,_nonzero_start[i_].y);
+   
 	/*if(_collect_blob.size()<1) return ofVec2f(0,0);
 
 	int i=(int)ofRandom(_collect_blob.size());
@@ -1584,7 +1624,9 @@ void ofApp::updateSerial(){
         }
         if(_effect==DEFFECT::BLOB_SELECT){
             if(val[0]=="blob_reset"){
-                setEffect(DEFFECT::BLOB_SELECT);
+                //setEffect(DEFFECT::BLOB_SELECT);
+                addSelectKey();
+                
             }else if(val[0]=="speed_b"){
                 float v=ofToFloat(val[1]);
                 _anim_select.setDue(_param->_select_vel*(1.0+v/255.0*4.0));

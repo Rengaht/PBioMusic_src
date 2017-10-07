@@ -12,8 +12,9 @@ ofVec2f* PacMan::GDirection=new ofVec2f[5]{ofVec2f(1,0),ofVec2f(1,-1),ofVec2f(0,
 
 
 
-float PacMan::Rad=2;
-int PacMan::MPathRecord=50;
+float PacMan::Rad=3;
+float PacMan::Vel=2;
+int PacMan::MPathRecord=20;
 ofColor* PacMan::GColor=new ofColor[4]{ofColor(0,255,222),ofColor(255,184,222),ofColor(255,184,71),ofColor(255,0,0)};
 float PacMan::CornerAngle=30;
 

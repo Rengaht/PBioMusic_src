@@ -20,11 +20,12 @@ public:
     static float CornerAngle;
     
     static float Rad;
-    
+    static float Vel;
     
     /*ofVec2f _vel;
      ofVec2f _acc;*/
     //int _dir;
+    
     ofVec2f _dir;
     vector<ofVec2f> _path;
     
@@ -49,7 +50,7 @@ public:
         _ghost=g_;
         _gcolor=floor(ofRandom(4));
         
-        _dir=ofVec2f(Rad,0);
+        _dir=ofVec2f(Vel,0);
         _dir.rotate(ofRadToDeg(atan2(PHEIGHT/2-x_,PHEIGHT/2-y_)));
         
         _timer_dead=FrameTimer(500);
@@ -58,7 +59,7 @@ public:
     void update(float dt_){
         _timer_dead.update(dt_);
     }
-    void draw(){
+    void draw(ofImage img_){
         //        float life_=_path.size();
         //        for(int i=0;i<life_;++i){
         //            ofPushMatrix();
@@ -79,31 +80,35 @@ public:
         //        }
         
         
+        
+//        for(int i=0;i<_path.size();++i){
         ofPushMatrix();
         ofTranslate(_pos.x,_pos.y);
         
         ofPushStyle();
         
-//        if(!_dead){
-            
+        if(!_dead){
+        
             ofSetColor(252,212,55);
-            ofFill();
-            ofDrawCircle(0,0,Rad);
-            
-//        }else{
-            
-//            float a_=255.0*(1.0-_timer_dead.val());
-//            
-//            if(_ghost) ofSetColor(GColor[_gcolor],a_);
-//            else ofSetColor(255,255,0,a_);
 //            ofFill();
-//            ofDrawCircle(0,0,Rad*(1.0+2*_timer_dead.val()));
-//        }
+//            ofSetColor(255);
+            ofDrawCircle(-Rad/2,-Rad/2,Rad);
+//            img_.draw(-Rad/2,-Rad/2,Rad,Rad);
+        
+        }else{
+            
+            float a_=255.0*(1.0-_timer_dead.val());
+            
+            ofSetColor(252,212,55,255);
+            float r_=Rad*(1.0+0.0*_timer_dead.val());
+            ofDrawCircle(-r_/2,-r_/2,r_);
+            //img_.draw(-r_/2,-r_/2,r_,r_);
+        }
         
         ofPopStyle();
         ofPopMatrix();
         
-        
+//        }
     }
     void setPos(ofVec2f p_){
         _path.push_back(p_);

@@ -75,6 +75,9 @@ public:
         ani_t=ani_t/due*set_;
         due=set_;
     }
+    float getDue(){
+        return due;
+    }
 private:
 	float ani_t;
 	float due,delay;
