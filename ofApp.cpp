@@ -926,6 +926,10 @@ void ofApp::keyPressed(int key){
             _postprocess[_ipost]->setEnabled(true);
             ofLog()<<"now:"<<_ipost;
             break;
+        case 'L':
+            message_="lock#";
+            _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
 	}
 }
 //--------------------------------------------------------------
