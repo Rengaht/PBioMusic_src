@@ -165,7 +165,11 @@ public:
             ofSetColor(255,120);
                 ofPushMatrix();
                 ofTranslate(_blob._center.x,_blob._center.y);
+<<<<<<< HEAD
                     int i=ofClamp(floor(_blob._contours.size()*p_),0,_blob._contours.size()-1);
+=======
+                    int i=floor(_blob._contours.size()*p_);
+>>>>>>> origin/master
                     if(fill_) font_.drawString(ofToString(_blob._contours[i].x,2)+","+ofToString(_blob._contours[i].y,2),0,0);
                     else font_.drawString(ofToString(_blob._center.x,2)+","+ofToString(_blob._center.y,2),0,0);
                 ofPopMatrix();
@@ -366,7 +370,11 @@ public:
 		ofPopStyle();
 	}
 	void drawShape(float p_){
+<<<<<<< HEAD
 		int len=_blob._contours.size();//s(int)((float)_blob._npts*p_);
+=======
+		int len=(int)((float)_blob._npts*p_);
+>>>>>>> origin/master
         
 		ofBeginShape();
 		for(int i=0;i<len;++i) ofVertex(_blob._contours[i].x,_blob._contours[i].y);
@@ -409,7 +417,11 @@ public:
         ofVec2f ali=align(boids);
         ofVec2f coh=cohesion(boids);
         
+<<<<<<< HEAD
         sep*=2.5;
+=======
+        sep*=1.3;
+>>>>>>> origin/master
         ali*=1.0;
         coh*=1.0;
         
@@ -420,7 +432,11 @@ public:
         
          //boundary
         ofVec2f desired;
+<<<<<<< HEAD
          if(_floc.x>PWIDTH){
+=======
+         if(_floc.x>PHEIGHT){
+>>>>>>> origin/master
              applyForce(ofVec2f(-MaxForce,0));
          }else if(_floc.x<0){
              applyForce(ofVec2f(MaxForce,0));
