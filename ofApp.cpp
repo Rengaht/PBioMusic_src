@@ -10,10 +10,21 @@ void ofApp::setup(){
 	_param=new GlobalParam();
     
 #if defined(USE_VIDEO)
-    _video.load("ref.mov");
+    _video.load("ref/5.mp4");
     _video.play();
-    _video.setLoopState(OF_LOOP_NORMAL);
+    _video.setLoopState(OF_LOOP_NONE);
     _video.setVolume(0);
+<<<<<<< HEAD
+	ofLog()<<"movie loaded ="<<_video.isLoaded()<<" "<<_video.getWidth()<<"x"<<_video.getHeight();
+	
+    _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
+#elif defined(USE_REF)
+	_img_ref.load("onion.jpg");
+    _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
+#else
+    _camera.listDevices();
+    _camera.setDeviceID(0);
+=======
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #elif defined(USE_REF)
 	_img_ref.load("ref2.jpg");
@@ -21,12 +32,27 @@ void ofApp::setup(){
 #else
     _camera.listDevices();
     _camera.setDeviceID(1);
+>>>>>>> origin/master
 	_camera.setVerbose(true);
 	_camera.setup(PWIDTH,PHEIGHT);
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #endif
 
 	
+<<<<<<< HEAD
+    _mat_scale==cv::Mat(VHEIGHT,VWIDTH,CV_8UC3);
+    _mat_resize=cv::Mat(VHEIGHT,VWIDTH,CV_8UC3);
+    _mat_contrast=cv::Mat(VHEIGHT,VWIDTH,CV_8UC3);
+
+    _mat_gray=cv::Mat(VHEIGHT,VWIDTH,CV_8UC1);
+    _mat_normalize=cv::Mat(VHEIGHT,VWIDTH,CV_8UC1);
+    _mat_thres=cv::Mat(VHEIGHT,VWIDTH,CV_8UC1);
+    _mat_edge=cv::Mat(VHEIGHT,VWIDTH,CV_8UC1);
+    _mat_morph=cv::Mat(VHEIGHT,VWIDTH,CV_8UC1);
+    _mat_pacman=cv::Mat(VHEIGHT,VWIDTH,CV_8UC3);
+
+    _fbo_pacman.allocate(VWIDTH,VHEIGHT,GL_RGBA);
+=======
     _mat_scale==cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
     _mat_resize=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC3);
     _mat_contrast=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC3);
@@ -38,6 +64,7 @@ void ofApp::setup(){
     _mat_pacman=cv::Mat(PHEIGHT,PHEIGHT,CV_8UC3);
 
     _fbo_pacman.allocate(PHEIGHT,PHEIGHT,GL_RGBA);
+>>>>>>> origin/master
     
     
 	_osc_sender.setup(_param->_live_addr,9000);
@@ -71,13 +98,45 @@ void ofApp::setup(){
     
     
     _img_mask.load("mask.png");
+<<<<<<< HEAD
+#ifdef _APPLE__
+    _font.load("Menlo.ttc",7);
+#else
+	_font.load("verdana.ttf",7);
+#endif
+
+    //_img_pac.load("texture.png");
+=======
     _font.load("Menlo.ttc",7);
     
     _img_pac.load("texture.png");
+>>>>>>> origin/master
     
     
     
     _serial.listDevices();
+<<<<<<< HEAD
+	if(_serial.getDeviceList().size()>0) _serial.setup(0,9600);
+    
+    
+
+	//init bird
+	for(int i=0;i<MBIRDREGION;++i)
+		for(int j=0;j<MBIRDREGION;++j) _region_bird.push_back(vector<DetectBlob>());
+
+    //_light.setPosition(1000, 1000, 2000);
+    //
+    //_postprocess.init(ofGetWidth(), ofGetHeight());
+    //_postprocess.createPass<FxaaPass>()->setEnabled(false);
+    //_postprocess.createPass<BloomPass>()->setEnabled(false);
+    //_postprocess.createPass<DofPass>()->setEnabled(false);
+    //_postprocess.createPass<KaleidoscopePass>()->setEnabled(false);
+    //_postprocess.createPass<NoiseWarpPass>()->setEnabled(false);
+    //_postprocess.createPass<PixelatePass>()->setEnabled(false);
+    //_postprocess.createPass<EdgePass>()->setEnabled(false);
+    //_postprocess.createPass<VerticalTiltShifPass>()->setEnabled(false);
+    //_postprocess.createPass<GodRaysPass>()->setEnabled(false);
+=======
     _serial.setup(0,9600);
     
     
@@ -93,6 +152,7 @@ void ofApp::setup(){
     _postprocess.createPass<EdgePass>()->setEnabled(false);
     _postprocess.createPass<VerticalTiltShifPass>()->setEnabled(false);
     _postprocess.createPass<GodRaysPass>()->setEnabled(false);
+>>>>>>> origin/master
     
     _ipost=0;
 }
@@ -115,7 +175,11 @@ void ofApp::update(){
 	_last_millis+=_dmillis;
     cvAnalysis(_mat_resize);
     
+<<<<<<< HEAD
+    //receiveOSC();
+=======
     receiveOSC();
+>>>>>>> origin/master
     updateSerial();
 
     int len;
@@ -123,14 +187,23 @@ void ofApp::update(){
     ofVec2f bdir_;
     
 	bool new_=false;
+<<<<<<< HEAD
+    
+	float bwid_,bhei_;
+=======
     new_=updateSource();
+>>>>>>> origin/master
     
 	
 	switch(_mode){
 		case RUN:
+<<<<<<< HEAD
+			new_=updateSource();
+=======
+>>>>>>> origin/master
           	break;
 		case DETECT:
-			
+			new_=updateSource();
 			// something for drawing
 			_anim_detect.update(_dmillis);
 		
@@ -151,6 +224,10 @@ void ofApp::update(){
 			for(auto& b:_collect_blob) b.update(_dmillis);
 			switch(_effect){
 				case SCAN:
+<<<<<<< HEAD
+					new_=updateSource();
+=======
+>>>>>>> origin/master
 					_anim_scan.update(_dmillis);
                     if(_anim_scan.val()>=1){
                         _anim_scan.restart();
@@ -163,7 +240,11 @@ void ofApp::update(){
                     checkScan(_scan_dir);
 					break;
 				case EDGE_WALK:
+<<<<<<< HEAD
+					new_=updateSource();
+=======
 				
+>>>>>>> origin/master
                     for(auto it=_pacman.begin();it!=_pacman.end();){
                         (*it).update(_dmillis);
                         updatePacMan(*it);
@@ -175,7 +256,11 @@ void ofApp::update(){
                             it++;
                         }
                     }
+<<<<<<< HEAD
+                    //checkPacManCollide();
+=======
                     checkPacManCollide();
+>>>>>>> origin/master
 //                    for(auto& p:_pacman){
 //                        cv::Rect comp(0,0,10,10);
 //                        int area=cv::floodFill(_mat_pacman,cv::Point(p.getPos().x,p.getPos().y),cv::Scalar(0),&comp,cv::Scalar(20, 20, 20),cv::Scalar(20, 20, 20));
@@ -197,6 +282,10 @@ void ofApp::update(){
 
 					break;
 				case BLOB_SELECT:
+<<<<<<< HEAD
+					new_=updateSource();
+=======
+>>>>>>> origin/master
 //					_anim_select.update(_dmillis);
 //					if(_anim_select.val()>=1){						
 //                        if(_not_selected.size()>mSelectBlob){
@@ -210,6 +299,17 @@ void ofApp::update(){
 //						_anim_select.restart();
 //					}
                     alldead_=true;
+<<<<<<< HEAD
+					len=_selected.size();
+					for(int i=0;i<len;++i){
+							_selected[i].update(_dmillis);
+							updateSelectSeq(_selected[i]);
+							if(!_selected[i]._dead) alldead_=false;
+					}
+					
+                    
+                   // if(_selected.size()<3 && ofRandom(30)<1) addSelectKey();
+=======
                     for(auto& seq:_selected){
                         seq.update(_dmillis);
                         updateSelectSeq(seq);
@@ -218,6 +318,7 @@ void ofApp::update(){
                     
                     
                     if(_selected.size()<3 && ofRandom(30)<1) addSelectKey();
+>>>>>>> origin/master
                     
                     len=_not_selected.size();
                     if(len<1){
@@ -227,12 +328,31 @@ void ofApp::update(){
                 case BIRD:
                     bdir_=ofVec2f(PHEIGHT*.1,0);
                     bdir_.rotate(360.0*abs(sin(ofGetFrameNum()/50.0)));
+<<<<<<< HEAD
+                    bdir_+=ofVec2f(PWIDTH/2,PHEIGHT/2);
+                    DetectBlob::Center=bdir_;
+
+					bwid_=VWIDTH/(float)MBIRDREGION;
+					bhei_=VHEIGHT/(float)MBIRDREGION;
+                    updateBirdRegion();
+
+                    for(auto& b:_bird){
+						
+						int rx=ofClamp(floor(b._floc.x/(bwid_)),0,MBIRDREGION-1);
+						int ry=ofClamp(floor(b._floc.y/(bhei_)),0,MBIRDREGION-1);
+
+                        b.fupdate(_region_bird[rx*MBIRDREGION+ry],_dmillis);
+                        //if(DetectBlob::Center.distance(ofVec2f(b._floc.x,b._floc.y))>PHEIGHT/2*.9){
+						if(b._floc.x>VWIDTH*.9 || b._floc.x<VWIDTH*.1
+						   || b._floc.y>VHEIGHT*.9 || b._floc.y<VHEIGHT*.1){
+=======
                     bdir_+=ofVec2f(PHEIGHT/2,PHEIGHT/2);
                     DetectBlob::Center=bdir_;
                     
                     for(auto& b:_bird){
                         b.fupdate(_bird,_dmillis);
                         if(DetectBlob::Center.distance(ofVec2f(b._floc.x,b._floc.y))>PHEIGHT/2*.9){
+>>>>>>> origin/master
                             if(!b.getTrigger()){
                                 b.setTrigger(true);
                                 triggerSound();
@@ -243,15 +363,22 @@ void ofApp::update(){
                     }
                     break;
                 case BUG:
+<<<<<<< HEAD
+					new_=updateSource();
+=======
+>>>>>>> origin/master
                     cvProcess(_mat_contrast);
                     for(auto& box:_bug_box) checkBugTouch(box);
                     break;
 			}
 			break;
 
-
 	}
 	
+<<<<<<< HEAD
+	ofSetWindowTitle(ofToString(ofGetFrameRate()));
+=======
+>>>>>>> origin/master
 
 	
 }
@@ -285,6 +412,18 @@ void ofApp::draw(){
     //            _postprocess.begin();
 
     
+<<<<<<< HEAD
+ 
+    
+    float ratio_=(float)VHEIGHT/PHEIGHT;
+	
+	float rw_=_anim_detect.val()*PWIDTH;
+	
+	ofPushMatrix();
+   // ofTranslate(ofGetWidth()/2-VWIDTH/2,ofGetHeight()/2-VHEIGHT/2);
+    
+  //  ofScale(ratio_,ratio_);
+=======
     
     
     float ratio_=(float)VHEIGHT/PHEIGHT;
@@ -295,6 +434,7 @@ void ofApp::draw(){
     ofTranslate(ofGetWidth()/2-VHEIGHT/2,ofGetHeight()/2-VHEIGHT/2);
     
     ofScale(ratio_,ratio_);
+>>>>>>> origin/master
     
     
 	switch(_mode){
@@ -302,7 +442,11 @@ void ofApp::draw(){
 			_report1<<"mode:run"<<endl;
             _report2<<"compute histogram"<<endl;
   
+<<<<<<< HEAD
+            _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+=======
             _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
             
             
             break;
@@ -312,20 +456,32 @@ void ofApp::draw(){
             switch(_idetect_view){
 				case 0:
                     _report2<<"resize image"<<endl;
+<<<<<<< HEAD
+                    _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+=======
                     _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 					_img_normalize.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
 				case 1:
                     _report2<<"resize image"<<endl
                             <<"normalize image"<<endl;
+<<<<<<< HEAD
+					_img_normalize.draw(0,0,PWIDTH,PHEIGHT);
+=======
 					_img_normalize.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 					_img_thres.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
 				case 2:
                     _report2<<"resize image"<<endl
                             <<"normalize image"<<endl
                             <<"adaptive threshold"<<endl;
+<<<<<<< HEAD
+                    _img_thres.draw(0,0,PWIDTH,PHEIGHT);
+=======
                     _img_thres.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 					_img_morph.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
                 case 3:
@@ -334,7 +490,11 @@ void ofApp::draw(){
                     <<"adaptive threshold"<<endl
                     <<"morpholgy structure"<<endl;
                     
+<<<<<<< HEAD
+                    _img_morph.draw(0,0,PWIDTH,PHEIGHT);
+=======
                     _img_morph.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
                     _img_edge.drawSubsection(0,0,rw_,PHEIGHT,0,0);
                     break;
 
@@ -346,7 +506,11 @@ void ofApp::draw(){
                             <<"find edge"<<endl;
                     ofPushStyle();
 					ofSetColor(255,255.0*(1-_anim_detect.val()));
+<<<<<<< HEAD
+					_img_edge.draw(0,0,PWIDTH,PHEIGHT);
+=======
 					_img_edge.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 					ofPopStyle();
 
 					ofPushMatrix();
@@ -364,9 +528,15 @@ void ofApp::draw(){
 					ofSetColor(255,255.0*_anim_detect.val());
 
                     if(_next_effect==DEFFECT::EDGE_WALK || _next_effect==DEFFECT::BIRD){
+<<<<<<< HEAD
+                        _img_edge.draw(0,0,PWIDTH,PHEIGHT);
+                    }else{
+						_img_resize.draw(0,0,PWIDTH,PHEIGHT);
+=======
                         _img_edge.draw(0,0,PHEIGHT,PHEIGHT);
                     }else{
 						_img_resize.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 					}
 					ofPopStyle();
 
@@ -384,7 +554,11 @@ void ofApp::draw(){
 
 			switch(_effect){
 			case SCAN:        
+<<<<<<< HEAD
+				_img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+=======
 				_img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
 				_report1<<"effect:scan"<<endl;
                 _report1<<"mtrigger="<<endl;
                     for(auto& b:_collect_blob){
@@ -445,6 +619,15 @@ void ofApp::draw(){
 				break;
 			case EDGE_WALK:
 //				_img_pacman.draw(0,0,PHEIGHT,PHEIGHT);
+<<<<<<< HEAD
+             //   _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+//                    ofPushStyle();
+//                    ofSetColor(255,120);
+                _img_morph.draw(0,0,PWIDTH,PHEIGHT);
+                   // ofPushStyle();
+				//for(auto& b:_collect_blob) b.draw(1.0,false);
+                _fbo_pacman.draw(0,0,PWIDTH,PHEIGHT);
+=======
                 _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
 //                    ofPushStyle();
 //                    ofSetColor(255,120);
@@ -452,6 +635,7 @@ void ofApp::draw(){
                    // ofPushStyle();
 				//for(auto& b:_collect_blob) b.draw(1.0,false);
                 _fbo_pacman.draw(0,0);
+>>>>>>> origin/master
 //                for(auto& p:_pacman){
 //                    p.draw(_img_pac);
 //                }
@@ -461,7 +645,11 @@ void ofApp::draw(){
                     
                 break;
 			case BLOB_SELECT:
+<<<<<<< HEAD
+				_img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+=======
 				_img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
                     for(auto& seq:_selected){
                         seq.draw(_font);
                     }
@@ -469,12 +657,20 @@ void ofApp::draw(){
 				_report1<<"effect:blob"<<endl;
                 break;
             case BIRD:
+<<<<<<< HEAD
+                    _img_edge.draw(0,0,PWIDTH,PHEIGHT);
+=======
                     _img_edge.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
                     for(auto& b:_bird) b.drawBirdBack();
                     for(auto& b:_bird) b.drawBird();
                     break;
             case BUG:
+<<<<<<< HEAD
+                    _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+=======
                     _img_contrast.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
                     for(auto& box:_bug_box) box.draw();
                     for(auto& b:_collect_blob) b.drawBug(_font);
                     break;
@@ -490,6 +686,16 @@ void ofApp::draw(){
 
     
     ofPushMatrix();
+<<<<<<< HEAD
+    ofTranslate(80,650);
+    ofSetHexColor(0xffffff);
+	
+	//_report1<<"fps=" << ofGetFrameRate()<<endl;
+    
+    
+    //ofDrawBitmapString(reportStr.str(),0,0);
+    if(_mode==MODE::RUN) drawAnalysis(0,0,VWIDTH*.7,50);
+=======
     ofTranslate(ofGetWidth()/2-150,560);
     ofSetHexColor(0xffffff);
 	
@@ -498,6 +704,7 @@ void ofApp::draw(){
     
     //ofDrawBitmapString(reportStr.str(),0,0);
     if(_mode==MODE::RUN) drawAnalysis(-50,0,PWIDTH*.7,50);
+>>>>>>> origin/master
     
     ofScale(ratio_,ratio_);
     
@@ -510,7 +717,11 @@ void ofApp::draw(){
 //            _postprocess.end();
 
     
+<<<<<<< HEAD
+    if(_img_mask.bAllocated()) _img_mask.draw(0,0);
+=======
     _img_mask.draw(0,0);
+>>>>>>> origin/master
     
     
     //send spout
@@ -539,7 +750,11 @@ bool ofApp::updateSource(){
 
 	if(bNewFrame){
 #if defined(USE_VIDEO)
+<<<<<<< HEAD
+        _mat_grab=cv::Mat(_video.getHeight(),_video.getWidth(),CV_8UC3,_video.getPixels());
+=======
         _mat_grab=cv::Mat(_video.getHeight(),_video.getWidth(),CV_8UC3,_video.getPixelsRef().getData());
+>>>>>>> origin/master
 #elif defined(USE_REF)
         _mat_grab=cv::Mat(_img_ref.getHeight(),_img_ref.getWidth(),CV_8UC3,_img_ref.getPixelsRef().getData());
 #else			
@@ -547,9 +762,17 @@ bool ofApp::updateSource(){
 #endif  
 	}
     
+<<<<<<< HEAD
+ //   _mat_scale=_mat_grab(cv::Rect(PWIDTH/2-PHEIGHT/2,0,PWIDTH,PHEIGHT));
+	//cv::resize(_mat_scale,_mat_resize,cv::Size(PWIDTH,PHEIGHT));
+	cv::resize(_mat_grab,_mat_resize,cv::Size(VWIDTH,VHEIGHT));
+
+	_img_resize=matToImage(_mat_resize);
+=======
     _mat_scale=_mat_grab(cv::Rect(PWIDTH/2-PHEIGHT/2,0,PHEIGHT,PHEIGHT));
     cv::resize(_mat_scale,_mat_resize,cv::Size(PHEIGHT,PHEIGHT));
     _img_resize=matToImage(_mat_resize);
+>>>>>>> origin/master
     
     stretchContrast(_mat_resize,_mat_contrast,60,180);
     _img_contrast=matToImage(_mat_contrast);
@@ -559,11 +782,19 @@ bool ofApp::updateSource(){
 
 // for main opencv processing
 void ofApp::cvProcess(cv::Mat& grab_){
+<<<<<<< HEAD
 
     
     
 	
 
+=======
+
+    
+    
+	
+
+>>>>>>> origin/master
 	cv::cvtColor(_mat_contrast,_mat_gray,CV_BGR2GRAY);
     cv::blur(_mat_gray,_mat_gray,cv::Size(3,3));
 
@@ -633,6 +864,20 @@ void ofApp::cvAnalysis(cv::Mat& grab_){
     _mat_fft=_mat_fft(cv::Rect(0, 0, _mat_fft.cols & -2, _mat_fft.rows & -2));
     
     normalize(_mat_fft, _mat_fft, 0, 1, CV_MINMAX);
+<<<<<<< HEAD
+
+    
+}
+
+void ofApp::drawAnalysis(float x_,float y_,float wid_,float hei_){
+    
+
+    float skip_=80;
+    float mplot_=50;
+    
+	if(_hist.rows<skip_) return;
+	
+=======
 
     
 }
@@ -642,12 +887,17 @@ void ofApp::drawAnalysis(float x_,float y_,float wid_,float hei_){
     float skip_=80;
     float mplot_=50;
     
+>>>>>>> origin/master
     float histwid_=wid_/skip_;
     
     double maxval_;
     cv::minMaxLoc(_hist,0,&maxval_,0,0);
     _report2<<"hist max="<<maxval_<<endl;
     
+<<<<<<< HEAD
+	
+=======
+>>>>>>> origin/master
     ofPushMatrix();
     ofTranslate(x_,y_+hei_/2);
     ofPushStyle();
@@ -657,7 +907,11 @@ void ofApp::drawAnalysis(float x_,float y_,float wid_,float hei_){
     
     ofBeginShape();
     for(int i=0;i<skip_;++i){
+<<<<<<< HEAD
+        float binVal=_hist.at<float>(ofClamp((int)(i+ofGetFrameNum()+skip_)%(int)(_hist_size-skip_*2),0,_hist.rows));
+=======
         float binVal=_hist.at<float>((int)(i+ofGetFrameNum()+skip_)%(int)(_hist_size-skip_*2));
+>>>>>>> origin/master
         float intensity=round(binVal*hei_/maxval_);
         float x=(i)*histwid_;
         
@@ -731,11 +985,23 @@ void ofApp::updateBlob(vector<vector<cv::Point>>& contour_,vector<cv::Vec4i>& hi
     
     for(int i=0;i<clen;++i){
         Blob b_=contourApproxBlob(contour_[i]);
+<<<<<<< HEAD
+        /*float d_=ofDist(b_._center.x, b_._center.y,PHEIGHT/2,PHEIGHT/2);
+        if(d_>PHEIGHT/2) continue;*/
+
+        if(b_._center.x>VWIDTH || b_._center.x<0 || b_._center.y>VHEIGHT || b_._center.y<0) continue;
+		if(b_._rad>VWIDTH*.03) continue;
+
+
+        float area_=cv::contourArea(contour_[i]);
+		if(area_>_param->_blob_small && area_<_param->_blob_large*frame_){
+=======
         float d_=ofDist(b_._center.x, b_._center.y,PHEIGHT/2,PHEIGHT/2);
         if(d_>PHEIGHT/2) continue;
         
         float area_=cv::contourArea(contour_[i]);
         if(area_>_param->_blob_small && area_<_param->_blob_large*frame_){
+>>>>>>> origin/master
             
             DetectBlob db_;
             db_._id=_collect_blob.size();
@@ -808,12 +1074,21 @@ void ofApp::keyPressed(int key){
 			_next_effect=DEFFECT::SCAN;
             _track=1;
             setMode(MODE::DETECT);
+<<<<<<< HEAD
 			break;
 		case '3':
             _next_effect=DEFFECT::EDGE_WALK;
             _track=2;
 			setMode(MODE::DETECT);
 			break;
+=======
+			break;
+		case '3':
+            _next_effect=DEFFECT::EDGE_WALK;
+            _track=2;
+			setMode(MODE::DETECT);
+			break;
+>>>>>>> origin/master
         case '4':
             _next_effect=DEFFECT::BIRD;
             _track=3;
@@ -905,6 +1180,27 @@ void ofApp::keyPressed(int key){
 			break;
 		case 'l':
 			triggerSound();
+<<<<<<< HEAD
+			break;
+            
+        /* motor */
+        case 'q':
+            message_="motor_speedup#";
+            _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
+        case 'w':
+            message_="motor_slowdown#";
+            _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
+        case 'e':
+            message_="motor_toggle#";
+            _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
+            break;
+        case 'p':
+			_video.play();
+			_video.setPosition(0);
+=======
+>>>>>>> origin/master
 			break;
             
         /* motor */
@@ -1008,7 +1304,11 @@ void ofApp::setEffect(DEFFECT set_){
 	int len_=0;
 	switch(set_){
 		case EDGE_WALK:
+<<<<<<< HEAD
+            _img_morph.draw(0,0,PWIDTH,PHEIGHT);
+=======
             _img_morph.draw(0,0,PHEIGHT,PHEIGHT);
+>>>>>>> origin/master
             
             //_mat_morph.convertTo(_mat_pacman,CV_8UC3);
 			cv::findNonZero(_mat_morph,_mat_nonzero);
@@ -1021,12 +1321,22 @@ void ofApp::setEffect(DEFFECT set_){
                 
                 _nonzero_point.push_back(p_);
                 
+<<<<<<< HEAD
+               // float d_=ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2);
+               // if(d_>=(float)PHEIGHT/2*.7 && d_<=(float)PHEIGHT/2*.85){
+				//if(p_.x>PWIDTH*.75 || p_.x<PWIDTH*.25 || p_.y>PHEIGHT*.75 || p_.y<PHEIGHT*.25){
+//                    if(p_.y<PHEIGHT/2)
+                        _nonzero_start.push_back(p_);
+//                    else _nonzero_gstart.push_back(p_);
+              //  }
+=======
                 float d_=ofDist(p_.x,p_.y,PHEIGHT/2,PHEIGHT/2);
                 if(d_>=(float)PHEIGHT/2*.7 && d_<=(float)PHEIGHT/2*.85){
 //                    if(p_.y<PHEIGHT/2)
                         _nonzero_start.push_back(p_);
 //                    else _nonzero_gstart.push_back(p_);
                 }
+>>>>>>> origin/master
 			}
 			_pacman.clear();
 			for(int i=0;i<1;++i){
@@ -1050,8 +1360,29 @@ void ofApp::setEffect(DEFFECT set_){
 
 			_selected.clear();
 			_not_selected.clear();
-			for(auto b:_collect_blob) _not_selected.push_back(b);
+			for(auto b:_collect_blob){
+				
+				_not_selected.push_back(b);
+			}
+//			random_shuffle(_not_selected.begin(),_not_selected.end());
+//            DetectBlob::Center=ofVec2f(_not_selected[0]._blob._center.x,_not_selected[0]._blob._center.y);
+//            std::sort(_not_selected.begin(),_not_selected.end());
+            
+            addSelectKey();
 			
+<<<<<<< HEAD
+			break;
+        case BIRD:
+            DetectBlob::MaxSpeed=12;
+            DetectBlob::MaxForce=1.5;
+            DetectBlob::CenterForce=2.0;
+            
+            _bird.clear();
+            for(auto& b:_collect_blob){
+                _bird.push_back(b);
+            }
+            DetectBlob::Center=ofVec2f(VWIDTH/2,VHEIGHT/2);
+=======
 //			random_shuffle(_not_selected.begin(),_not_selected.end());
 //            DetectBlob::Center=ofVec2f(_not_selected[0]._blob._center.x,_not_selected[0]._blob._center.y);
 //            std::sort(_not_selected.begin(),_not_selected.end());
@@ -1071,6 +1402,7 @@ void ofApp::setEffect(DEFFECT set_){
                 _bird.push_back(b);
             }
             DetectBlob::Center=ofVec2f(PHEIGHT/2,PHEIGHT/2);
+>>>>>>> origin/master
             for(auto& b:_bird){
                 //cv::Vec3b c_=_mat_contrast.at<cv::Vec3b>(b._blob._center.y,b._blob._center.x);
                 //b.finit(ofColor((int)c_[2],(int)c_[1],(int)c_[0]));
@@ -1100,7 +1432,11 @@ Blob ofApp::contourApproxBlob(vector<cv::Point>& contour_){
     cv::Rect bounding_;
 	float rad_;
 
+<<<<<<< HEAD
+    cv::approxPolyDP(cv::Mat(contour_),poly_,3,true);
+=======
     cv::approxPolyDP(cv::Mat(contour_),poly_,2,false);
+>>>>>>> origin/master
     bounding_=cv::boundingRect(cv::Mat(poly_));
 	minEnclosingCircle(poly_,center_,rad_);
     //ofLog()<<center_.x<<", "<<center_.y;
@@ -1110,7 +1446,11 @@ Blob ofApp::contourApproxBlob(vector<cv::Point>& contour_){
         p.y-=center_.y;
     }
     
+<<<<<<< HEAD
+	b._contours=poly_;
+=======
 	b._contours=contour_;
+>>>>>>> origin/master
 	b._center=center_;
 	b._bounding=bounding_;
 	b._rad=rad_;
@@ -1166,11 +1506,19 @@ bool ofApp::isSimilar(Blob b1_,Blob b2_){
 #pragma mark EFFECT_SCAN
 bool ofApp::isScanned(DetectBlob detect_){
     
+<<<<<<< HEAD
+    float ehei=VHEIGHT/_scan_range;
+    float ebegin=VHEIGHT*0.1;
+    float eang=360.0/_scan_range;
+    
+    float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*VWIDTH:_anim_scan.val()*PHEIGHT/2;
+=======
     float ehei=PHEIGHT*.8/_scan_range;
     float ebegin=PHEIGHT*.2;
     float eang=360.0/_scan_range;
     
     float spos_=(_scan_dir==SCANDIR::VERT)?_anim_scan.val()*PHEIGHT:_anim_scan.val()*PHEIGHT/2;
+>>>>>>> origin/master
     float rpos_=(_scan_dir==SCANDIR::VERT)?(_scan_range-_scan_pos)*ehei:_scan_pos*eang;
     cv::Rect rec_(0,rpos_,spos_,ehei);
     
@@ -1182,8 +1530,13 @@ bool ofApp::isScanned(DetectBlob detect_){
             if((rec_&detect_._blob._bounding).area() >0) return true;
             break;
         case RADIAL:
+<<<<<<< HEAD
+            dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PWIDTH/2,PHEIGHT/2);
+            ang=ofRadToDeg(fmod(atan2(detect_._blob._center.y-PHEIGHT/2,detect_._blob._center.x-PWIDTH/2)+TWO_PI,TWO_PI));
+=======
             dist=ofDist(detect_._blob._center.x,detect_._blob._center.y,PHEIGHT/2,PHEIGHT/2);
             ang=ofRadToDeg(fmod(atan2(detect_._blob._center.y-PHEIGHT/2,detect_._blob._center.x-PHEIGHT/2)+TWO_PI,TWO_PI));
+>>>>>>> origin/master
             
             float brad_=detect_._blob._rad;//max(detect_._blob._bounding.width,detect_._blob._bounding.height)/2;
             if(dist-brad_<spos_ && dist+brad_>spos_ && ang>rpos_-eang/2 && ang<=eang/2+rpos_) return true;
@@ -1256,8 +1609,13 @@ void ofApp::updatePacMan(PacMan& p_){
     int mturn_=3;
     vector<int> change_(mturn_*2);
     for(int i=1;i<=mturn_;++i){
+<<<<<<< HEAD
+        change_[2*(i-1)]=i;
+        change_[2*(i-1)+1]=-i;
+=======
         change_[2*i]=i;
         change_[2*i+1]=-i;
+>>>>>>> origin/master
     }
 	
 	random_shuffle(change_.begin(),change_.end());
@@ -1390,6 +1748,8 @@ void ofApp::checkPacManCollide(){
 #pragma mark EFFECT_BLOB
 
 
+<<<<<<< HEAD
+=======
 //float ofApp::selectBlob(DetectBlob from_){
 //
 //	
@@ -1420,6 +1780,7 @@ void ofApp::checkPacManCollide(){
 //	
 //    return char_;
 //}
+>>>>>>> origin/master
 void ofApp::addSelectKey(){
     vector<DetectBlob> seq_;
     
@@ -1433,7 +1794,11 @@ void ofApp::addSelectKey(){
     
     
     int ind=floor(ofRandom(len));
+<<<<<<< HEAD
+    int step_=floor(ofRandom(1)+_param->_select_len);
+=======
     int step_=floor(ofRandom(5)+_param->_select_len);
+>>>>>>> origin/master
     
     cv::Point cur_=_not_selected[ind]._blob._center;
     
@@ -1448,6 +1813,23 @@ void ofApp::addSelectKey(){
     s._blobs=seq_;
     
     _selected.push_back(s);
+<<<<<<< HEAD
+}
+
+vector<DetectBlob> ofApp::getNextBlob(cv::Point cent_,int count_){
+    
+    vector<DetectBlob> res_;
+    
+    DetectBlob::Center=ofVec2f(cent_.x,cent_.y);
+    std::sort(_not_selected.begin(),_not_selected.end());
+    
+    for(int i=0;i<min(count_,(int)_not_selected.size());++i){
+        res_.push_back(_not_selected[0]);
+        _not_selected.erase(_not_selected.begin());
+    }
+    return res_;
+=======
+>>>>>>> origin/master
 }
 
 vector<DetectBlob> ofApp::getNextBlob(cv::Point cent_,int count_){
@@ -1464,7 +1846,10 @@ vector<DetectBlob> ofApp::getNextBlob(cv::Point cent_,int count_){
     return res_;
 }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
 void ofApp::updateSelectSeq(SelectSeq& seq){
     
     if(seq._anim.val()<1 || seq._dead) return;
@@ -1505,6 +1890,26 @@ void ofApp::updateSelectSeq(SelectSeq& seq){
     
 }
 
+<<<<<<< HEAD
+#pragma mark EFFECT_BIRD
+void ofApp::updateBirdRegion(){
+
+	float width=ofGetWidth()/MBIRDREGION;
+	float height=ofGetHeight()/MBIRDREGION;
+
+	for(int i=0;i<MBIRDREGION;++i)
+		for(int j=0;j<MBIRDREGION;++j){
+			_region_bird[i*MBIRDREGION+j].clear();
+		}
+
+	for(auto b:_bird){
+		int rx=ofClamp(floor(b._floc.x/(width)),0,MBIRDREGION-1);
+		int ry=ofClamp(floor(b._floc.y/(height)),0,MBIRDREGION-1);
+		_region_bird[rx*MBIRDREGION+ry].push_back(b);
+	}
+}
+=======
+>>>>>>> origin/master
 
 #pragma mark EFFECT_BUG
 bool ofApp::checkBugTouch(BugBox& box_){
@@ -1530,8 +1935,15 @@ bool ofApp::checkBugTouch(BugBox& box_){
 #pragma mark LIVE_TRIGGER
 void ofApp::triggerSound(){
 	vector<float> p_;
+<<<<<<< HEAD
+		/*p_.push_back(_track);
+		p_.push_back(floor(ofRandom(SoundTrackCount[_track])));*/
+		p_.push_back(0);
+		p_.push_back(floor(ofRandom(13)));
+=======
 		p_.push_back(_track);
 		p_.push_back(floor(ofRandom(SoundTrackCount[_track])));
+>>>>>>> origin/master
 		sendOSC("/live/play/clip",p_);
 }
 
@@ -1543,10 +1955,18 @@ void ofApp::remoteVolume(int track_,float vol_){
     sendOSC("/live/volume",p_);
     
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/master
 
 #pragma mark COMMUNICATION
 
+<<<<<<< HEAD
+=======
+#pragma mark COMMUNICATION
+
+>>>>>>> origin/master
 void ofApp::sendOSC(string address_,vector<float> param_){
     
     cout<<"send osc: "<<address_<<" ";
@@ -1582,7 +2002,11 @@ void ofApp::updateSerial(){
     
     if(_serial.isInitialized() && _serial.available()){
         vector<string> val=readSerialString(_serial,'#');
+<<<<<<< HEAD
+        if(val.size()<1) return;
+=======
         if(val.size()<1) return -1;
+>>>>>>> origin/master
         ofLog()<<"serial read: "<<ofToString(val)<<endl;
         
         

@@ -51,7 +51,11 @@ public:
         _gcolor=floor(ofRandom(4));
         
         _dir=ofVec2f(Vel,0);
+<<<<<<< HEAD
+        _dir.rotate(ofRadToDeg(atan2(PWIDTH/2-x_,PHEIGHT/2-y_)));
+=======
         _dir.rotate(ofRadToDeg(atan2(PHEIGHT/2-x_,PHEIGHT/2-y_)));
+>>>>>>> origin/master
         
         _timer_dead=FrameTimer(500);
         _dead=false;

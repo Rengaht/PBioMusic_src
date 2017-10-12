@@ -12,6 +12,18 @@
 #include "ofxSyphon.h"
 #endif
 #include "ofxPostProcessing.h"
+<<<<<<< HEAD
+#include "ofxHapPlayer.h"
+
+
+#define VWIDTH 1280.0
+#define VHEIGHT 720.0
+
+#define PWIDTH 1280.0
+#define PHEIGHT 720.0
+
+
+=======
 
 
 #define VWIDTH 585.0
@@ -21,16 +33,24 @@
 #define PHEIGHT 480.0
 
 
+>>>>>>> origin/master
 #include "StringUtil.h"
 #include "FrameTimer.h"
 #include "Parameter.h"
 #include "DetectBlob.h"
 #include "Pacman.h"
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
 
 
-//#define USE_VIDEO
+<<<<<<< HEAD
+#define USE_VIDEO
 //#define USE_REF
 
+=======
+>>>>>>> origin/master
 
 #define MAXBLOB 20
 
@@ -40,6 +60,11 @@
 
 #define MAXPACMAN 50
 
+<<<<<<< HEAD
+#define MBIRDREGION 20
+
+=======
+>>>>>>> origin/master
 
 
 
@@ -76,6 +101,7 @@ class ofApp : public ofBaseApp{
 		
 #ifdef USE_VIDEO
         ofVideoPlayer _video;
+		//ofxHapPlayer _video;
 #else
 		ofVideoGrabber 		_camera;
 #endif
@@ -189,7 +215,12 @@ class ofApp : public ofBaseApp{
     
       //bird
        vector<DetectBlob> _bird;
+<<<<<<< HEAD
+	   vector<vector<DetectBlob>> _region_bird;
+	   void updateBirdRegion();
+=======
     
+>>>>>>> origin/master
     
         //bug
        int _mbug_box;
@@ -225,5 +256,11 @@ class ofApp : public ofBaseApp{
         ofEasyCam _cam;
         ofLight _light;
         int _ipost;
+<<<<<<< HEAD
+
+
+		
+=======
+>>>>>>> origin/master
     
 };
