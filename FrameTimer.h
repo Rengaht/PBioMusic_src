@@ -71,6 +71,13 @@ public:
 	void setContinuous(bool cont){
 		continuous=cont;
 	}
+    void setDue(float set_){
+        ani_t=ani_t/due*set_;
+        due=set_;
+    }
+    float getDue(){
+        return due;
+    }
 private:
 	float ani_t;
 	float due,delay;
