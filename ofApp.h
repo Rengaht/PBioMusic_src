@@ -18,8 +18,8 @@
 #define VWIDTH 1280.0
 #define VHEIGHT 720.0
 
-#define PWIDTH 1280.0
-#define PHEIGHT 720.0
+#define PWIDTH 1280
+#define PHEIGHT 1024.0
 
 
 
@@ -30,7 +30,7 @@
 #include "DetectBlob.h"
 #include "Pacman.h"
 
-#define USE_VIDEO
+//#define USE_VIDEO
 //#define USE_REF
 
 
@@ -188,6 +188,7 @@ class ofApp : public ofBaseApp{
     
        vector<SelectSeq> _selected;
 	   vector<DetectBlob> _not_selected;
+        float _select_due;
     
     
       //bird

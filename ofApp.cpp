@@ -22,7 +22,7 @@ void ofApp::setup(){
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
 #else
     _camera.listDevices();
-    _camera.setDeviceID(0);
+    _camera.setDeviceID(1);
 	_camera.setVerbose(true);
 	_camera.setup(PWIDTH,PHEIGHT);
     _mat_grab=cv::Mat(PHEIGHT,PWIDTH,CV_8UC3);
@@ -85,7 +85,7 @@ void ofApp::setup(){
     
     
     _serial.listDevices();
-	if(_serial.getDeviceList().size()>0) _serial.setup(0,9600);
+	if(_serial.getDeviceList().size()>0) _serial.setup(0,19200);
     
     
 
@@ -329,7 +329,7 @@ void ofApp::draw(){
 			_report1<<"mode:run"<<endl;
             _report2<<"compute histogram"<<endl;
   
-            _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+            _img_contrast.draw(0,0);
             
             
             break;
@@ -339,20 +339,20 @@ void ofApp::draw(){
             switch(_idetect_view){
 				case 0:
                     _report2<<"resize image"<<endl;
-                    _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+                    _img_contrast.draw(0,0);
 					_img_normalize.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
 				case 1:
                     _report2<<"resize image"<<endl
                             <<"normalize image"<<endl;
-					_img_normalize.draw(0,0,PWIDTH,PHEIGHT);
+					_img_normalize.draw(0,0);
 					_img_thres.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
 				case 2:
                     _report2<<"resize image"<<endl
                             <<"normalize image"<<endl
                             <<"adaptive threshold"<<endl;
-                    _img_thres.draw(0,0,PWIDTH,PHEIGHT);
+                    _img_thres.draw(0,0);
 					_img_morph.drawSubsection(0,0,rw_,PHEIGHT,0,0);
 					break;
                 case 3:
@@ -361,7 +361,7 @@ void ofApp::draw(){
                     <<"adaptive threshold"<<endl
                     <<"morpholgy structure"<<endl;
                     
-                    _img_morph.draw(0,0,PWIDTH,PHEIGHT);
+                    _img_morph.draw(0,0);
                     _img_edge.drawSubsection(0,0,rw_,PHEIGHT,0,0);
                     break;
 
@@ -373,7 +373,7 @@ void ofApp::draw(){
                             <<"find edge"<<endl;
                     ofPushStyle();
 					ofSetColor(255,255.0*(1-_anim_detect.val()));
-					_img_edge.draw(0,0,PWIDTH,PHEIGHT);
+					_img_edge.draw(0,0);
 					ofPopStyle();
 
 					ofPushMatrix();
@@ -391,9 +391,9 @@ void ofApp::draw(){
 					ofSetColor(255,255.0*_anim_detect.val());
 
                     if(_next_effect==DEFFECT::EDGE_WALK || _next_effect==DEFFECT::BIRD){
-                        _img_edge.draw(0,0,PWIDTH,PHEIGHT);
+                        _img_edge.draw(0,0);
                     }else{
-						_img_resize.draw(0,0,PWIDTH,PHEIGHT);
+						_img_resize.draw(0,0);
 					}
 					ofPopStyle();
 
@@ -411,7 +411,7 @@ void ofApp::draw(){
 
 			switch(_effect){
 			case SCAN:        
-				_img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+				_img_contrast.draw(0,0);
 				_report1<<"effect:scan"<<endl;
                 _report1<<"mtrigger="<<endl;
                     for(auto& b:_collect_blob){
@@ -475,10 +475,10 @@ void ofApp::draw(){
              //   _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
 //                    ofPushStyle();
 //                    ofSetColor(255,120);
-                _img_morph.draw(0,0,PWIDTH,PHEIGHT);
+                _img_morph.draw(0,0);
                    // ofPushStyle();
 				//for(auto& b:_collect_blob) b.draw(1.0,false);
-                _fbo_pacman.draw(0,0,PWIDTH,PHEIGHT);
+                _fbo_pacman.draw(0,0);
 //                for(auto& p:_pacman){
 //                    p.draw(_img_pac);
 //                }
@@ -488,7 +488,7 @@ void ofApp::draw(){
                     
                 break;
 			case BLOB_SELECT:
-				_img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+				_img_contrast.draw(0,0);
                     for(auto& seq:_selected){
                         seq.draw(_font);
                     }
@@ -496,12 +496,12 @@ void ofApp::draw(){
 				_report1<<"effect:blob"<<endl;
                 break;
             case BIRD:
-                    _img_edge.draw(0,0,PWIDTH,PHEIGHT);
+                    _img_edge.draw(0,0);
                     for(auto& b:_bird) b.drawBirdBack();
                     for(auto& b:_bird) b.drawBird();
                     break;
             case BUG:
-                    _img_contrast.draw(0,0,PWIDTH,PHEIGHT);
+                    _img_contrast.draw(0,0);
                     for(auto& box:_bug_box) box.draw();
                     for(auto& b:_collect_blob) b.drawBug(_font);
                     break;
@@ -574,9 +574,9 @@ bool ofApp::updateSource(){
 #endif
 	}
     
- //   _mat_scale=_mat_grab(cv::Rect(PWIDTH/2-PHEIGHT/2,0,PWIDTH,PHEIGHT));
+    _mat_resize=_mat_grab(cv::Rect(0,0,VWIDTH,VHEIGHT));
 	//cv::resize(_mat_scale,_mat_resize,cv::Size(PWIDTH,PHEIGHT));
-	cv::resize(_mat_grab,_mat_resize,cv::Size(VWIDTH,VHEIGHT));
+	//cv::resize(_mat_grab,_mat_resize,cv::Size(VWIDTH,VHEIGHT));
 
 	_img_resize=matToImage(_mat_resize);
     
@@ -598,8 +598,10 @@ void ofApp::cvProcess(cv::Mat& grab_){
 
     //if(_effect==DEFFECT::)cv::threshold(_mat_gray,_mat_thres,80,255,cv::THRESH_BINARY_INV);
     cv::adaptiveThreshold(_mat_normalize,_mat_thres,255,cv::ADAPTIVE_THRESH_GAUSSIAN_C,cv::THRESH_BINARY_INV,33,5);
-
-    cv::Mat struct_=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(7,7));
+    
+    cv::Mat struct_;
+    if(_next_effect==DEFFECT::EDGE_WALK) struct_=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(13,13));
+    else struct_=cv::getStructuringElement(cv::MORPH_ELLIPSE,cv::Size(7,7));
     cv::morphologyEx(_mat_thres,_mat_morph,cv::MORPH_CLOSE,struct_);
 
 	float area_=PWIDTH*PHEIGHT;
@@ -952,10 +954,11 @@ void ofApp::keyPressed(int key){
             _serial.writeBytes((unsigned char*)message_.c_str(),message_.size()+1);
             break;
         case 'p':
+#ifdef USE_VIDEO
 			_video.play();
 			_video.setPosition(0);
+#endif
 			break;
-            
        	}
 }
 //--------------------------------------------------------------
@@ -1085,6 +1088,7 @@ void ofApp::setEffect(DEFFECT set_){
 //            DetectBlob::Center=ofVec2f(_not_selected[0]._blob._center.x,_not_selected[0]._blob._center.y);
 //            std::sort(_not_selected.begin(),_not_selected.end());
             
+            _select_due=_param->_select_vel;
             addSelectKey();
 			
 			break;
@@ -1110,7 +1114,7 @@ void ofApp::setEffect(DEFFECT set_){
             float eang=(float)360/_mbug_box;
             
             for(int i=0;i<_mbug_box;++i){
-                BugBox b_(eang*i,eang*.9,PHEIGHT/2);
+                BugBox b_(eang*i,eang*.9,VHEIGHT/2);
                 _bug_box.push_back(b_);
             }
             break;
@@ -1317,7 +1321,7 @@ void ofApp::updatePacMan(PacMan& p_){
 	}else{
 		p_.setPos(pos_+next_*PACMANVEL);
 		
-        if(p_._dir.angle(next_)>=PacMan::CornerAngle*2) triggerSound();
+        if(p_._dir.angle(next_)>PacMan::CornerAngle) triggerSound();
         p_._dir=next_;
         
         
@@ -1430,7 +1434,7 @@ void ofApp::addSelectKey(){
     
     
     int ind=floor(ofRandom(len));
-    int step_=floor(ofRandom(1)+_param->_select_len);
+    int step_=_not_selected.size();//floor(ofRandom(1)+_param->_select_len);
     
     cv::Point cur_=_not_selected[ind]._blob._center;
     
@@ -1480,7 +1484,7 @@ void ofApp::updateSelectSeq(SelectSeq& seq){
     if(trigger_){
         triggerSound();
         
-        float char_=ofMap(area_,10,PHEIGHT*.3,_param->_select_vel+.5,_param->_select_vel+1.5);
+        float char_=ofMap(area_,10,PHEIGHT*.1,_select_due*.8,_select_due*1.2);
         seq._anim.setDue(char_);
         seq._anim.restart();
     }else{
@@ -1600,8 +1604,9 @@ void ofApp::updateSerial(){
         
         
         if(val[0]=="set_0"){
-            if(_mode!=MODE::EFFECT || _effect!=DEFFECT::SCAN){
-                _next_effect=DEFFECT::SCAN;
+            if(_mode!=MODE::EFFECT || _effect!=DEFFECT::BIRD){
+                //_next_effect=DEFFECT::SCAN;
+                _next_effect=DEFFECT::BIRD;
                 setMode(MODE::DETECT);
             }else{
                 setMode(MODE::RUN);
@@ -1641,12 +1646,13 @@ void ofApp::updateSerial(){
         }
         if(_effect==DEFFECT::BLOB_SELECT){
             if(val[0]=="blob_reset"){
-                //setEffect(DEFFECT::BLOB_SELECT);
-                addSelectKey();
+                setEffect(DEFFECT::BLOB_SELECT);
+                //addSelectKey();
                 
             }else if(val[0]=="speed_b"){
                 float v=ofToFloat(val[1]);
-                _anim_select.setDue(_param->_select_vel*(1.0+v/255.0*4.0));
+                _anim_select.setDue(_param->_select_vel*(1.0-v/255.0*0.99));
+                _select_due=_param->_select_vel*(1.0-v/255.0*0.99);
             }
         }
         if(_effect==DEFFECT::SCAN){
@@ -1657,6 +1663,19 @@ void ofApp::updateSerial(){
             }else if(val[0]=="speed_a"){
                 float v=ofToFloat(val[1]);
                 _anim_scan.setDue(_param->_scan_vel*(1.0+v/255.0*20.0));
+            }
+        }
+        if(_effect==DEFFECT::BIRD){
+            if(val[0]=="speed_a"){
+                float v=ofToFloat(val[1]);
+                DetectBlob::CenterForce=ofMap(v,0,255,1,3);
+                
+                DetectBlob::MaxForce=ofMap(v,0,255,.1,.5);
+                DetectBlob::MaxSpeed=ofMap(255-v,0,255,10,20);
+
+                
+                ofLog()<<"Bird param: "<<DetectBlob::CenterForce<<" "<<DetectBlob::MaxForce<<" "<<DetectBlob::MaxSpeed;
+                
             }
         }
         
